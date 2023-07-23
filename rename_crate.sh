@@ -13,3 +13,5 @@ NEW_NAME=$1
 sed -i "s/MY_CRATE_NAME/${NEW_NAME}/g" export_html/index.html
 sed -i "s/MY_CRATE_NAME/${NEW_NAME}/g" Cargo.toml
 sed -i "s/MY_CRATE_NAME/${NEW_NAME}/g" readme.md
+sed -i "s/MY_CRATE_NAME/${NEW_NAME}/g" .github/workflows/release.yml
+sed -i "s/MY_CRATE_NAME/${NEW_NAME}/g" src/main.rs

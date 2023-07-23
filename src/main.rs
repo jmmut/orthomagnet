@@ -1,6 +1,6 @@
 use macroquad::prelude::*;
 
-#[macroquad::main("BasicShapes")]
+#[macroquad::main("MY_CRATE_NAME")]
 async fn main() {
     loop {
         clear_background(RED);
