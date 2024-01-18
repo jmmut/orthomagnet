@@ -10,11 +10,44 @@ const WHITE_HINT: Color = Color::new(1.0, 1.0, 1.0, 0.3);
 const BLACK_HINT: Color = Color::new(0.0, 0.0, 0.0, 0.3);
 const WHITE_FULL: Color = Color::new(1.0, 1.0, 1.0, 0.7);
 const BLACK_FULL: Color = Color::new(0.0, 0.0, 0.0, 0.7);
+const TRANSPARENT: Color = Color::new(0.0, 0.0, 0.0, 0.0);
+
+#[derive(Copy, Clone)]
+enum Team {
+    Empty,
+    White,
+    Black,
+}
+impl Team {
+    fn toggle(&self) -> Team {
+        match self {
+            Team::White => Team::Black,
+            Team::Black => Team::White,
+            _ => panic!("can not toggle a Team::Empty"),
+        }
+    }
+    fn choose<T>(&self, if_empty: T, if_white: T, if_black: T) -> T {
+        match self {
+            Team::Empty => if_empty,
+            Team::White => if_white,
+            Team::Black => if_black,
+        }
+    }
+}
+
+struct Stone {
+    team: Team,
+}
 
 #[macroquad::main(window_conf)]
 async fn main() {
-    let mut white_turn = true;
-    let mut stones = Vec::new();
+    let mut turn = Team::White;
+    let mut board = Vec::new();
+    for _ in 0..SIZE {
+        let mut column = Vec::new();
+        column.resize(SIZE as usize, Team::Empty);
+        board.push(column);
+    }
     loop {
         if is_key_pressed(KeyCode::Escape) {
             break;
@@ -25,23 +58,18 @@ async fn main() {
         let board_rect = Rect::new(sw * 0.2, sw * 0.1, sw * 0.6, sw * 0.6);
         draw_board(board_rect);
         if let Some(tile) = get_tile(board_rect, SIZE, Vec2::from(mouse_position())) {
-            let color = if white_turn { WHITE_HINT } else { BLACK_HINT };
+            let color = turn.choose(TRANSPARENT, WHITE_HINT, BLACK_HINT);
             draw_stone(tile, color, board_rect);
             if is_mouse_button_released(MouseButton::Left) {
-                stones.push(tile);
-                white_turn = !white_turn;
+                let clicked = &mut board[tile.x as usize][tile.y as usize];
+                if let Team::Empty = clicked {
+                    *clicked = turn;
+
+                    turn = turn.toggle();
+                }
             }
         }
-        let mut drawing_white = true;
-        for stone in &stones {
-            let color = if drawing_white {
-                WHITE_FULL
-            } else {
-                BLACK_FULL
-            };
-            drawing_white = !drawing_white;
-            draw_stone(stone.clone(), color, board_rect);
-        }
+        draw_stones(&board, board_rect);
         next_frame().await
     }
 }
@@ -83,6 +111,14 @@ fn get_tile(board_rect: Rect, size: i32, pos: Vec2) -> Option<IVec2> {
     }
 }
 
+fn draw_stones(board: &Vec<Vec<Team>>, board_rect: Rect) {
+    for (x_i, column) in board.iter().enumerate() {
+        for (y_i, team) in column.iter().enumerate() {
+            let color = team.choose(TRANSPARENT, WHITE_FULL, BLACK_FULL);
+            draw_stone(IVec2::new(x_i as i32, y_i as i32), color, board_rect);
+        }
+    }
+}
 fn draw_stone(tile: IVec2, color: Color, board_rect: Rect) {
     let tile_size_x = board_rect.w / SIZE as f32;
     let tile_size_y = board_rect.h / SIZE as f32;
