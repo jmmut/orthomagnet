@@ -4,7 +4,7 @@ const SIZE: i32 = 5;
 
 const DEFAULT_WINDOW_WIDTH: i32 = 800;
 const DEFAULT_WINDOW_HEIGHT: i32 = 800;
-const DEFAULT_WINDOW_TITLE: &str = "MY_CRATE_NAME";
+const DEFAULT_WINDOW_TITLE: &str = "orthomagnet";
 
 const WHITE_HINT: Color = Color::new(1.0, 1.0, 1.0, 0.3);
 const BLACK_HINT: Color = Color::new(0.0, 0.0, 0.0, 0.3);
