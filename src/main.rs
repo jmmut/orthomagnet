@@ -12,7 +12,7 @@ const WHITE_FULL: Color = Color::new(1.0, 1.0, 1.0, 0.7);
 const BLACK_FULL: Color = Color::new(0.0, 0.0, 0.0, 0.7);
 const TRANSPARENT: Color = Color::new(0.0, 0.0, 0.0, 0.0);
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 enum Team {
     Empty,
     White,
@@ -38,13 +38,13 @@ impl Team {
 #[macroquad::main(window_conf)]
 async fn main() {
     let mut turn = Team::White;
-    let mut board = new_board();
+    let mut board = new_board(SIZE);
     loop {
         if is_key_pressed(KeyCode::Escape) {
             break;
         }
         if is_key_pressed(KeyCode::R) {
-            board = new_board();
+            board = new_board(SIZE);
         }
         clear_background(GRAY);
         let sw = screen_width();
@@ -55,7 +55,7 @@ async fn main() {
             let color = turn.choose(TRANSPARENT, WHITE_HINT, BLACK_HINT);
             draw_stone(tile, color, board_rect);
             if is_mouse_button_released(MouseButton::Left) {
-                move_stone(&mut turn, &mut board, tile);
+                try_put_stone(&mut turn, &mut board, tile);
             }
         }
         draw_stones(&board, board_rect);
@@ -63,7 +63,7 @@ async fn main() {
     }
 }
 
-fn move_stone(turn: &mut Team, mut board: &mut Vec<Vec<Team>>, tile: IVec2) {
+fn try_put_stone(turn: &mut Team, mut board: &mut Vec<Vec<Team>>, tile: IVec2) {
     let clicked = &mut board[tile.x as usize][tile.y as usize];
     if let Team::Empty = clicked {
         *clicked = *turn;
@@ -78,17 +78,15 @@ fn move_stone(turn: &mut Team, mut board: &mut Vec<Vec<Team>>, tile: IVec2) {
         // space for pulling stones in +x
         let opponent = turn.toggle();
         for i in 2..SIZE {
-            if check_xp {
-                let pulled = tile + IVec2::new(i, 0);
-                if *turn == get_team(&board, pulled) {
-                    check_xp = false;
-                }
-                if opponent == get_team(&board, pulled) {
-                    *get_team_mut(&mut board, side_xp) = *turn;
-                    *get_team_mut(&mut board, pulled) = Team::Empty;
-                    check_xp = false;
-                }
-            }
+            check_direction(
+                turn,
+                opponent,
+                tile,
+                side_xp,
+                IVec2::new(i, 0),
+                &mut board,
+                &mut check_xp,
+            );
             if check_xn {
                 let pulled = tile + IVec2::new(-i, 0);
                 if *turn == get_team(&board, pulled) {
@@ -127,11 +125,34 @@ fn move_stone(turn: &mut Team, mut board: &mut Vec<Vec<Team>>, tile: IVec2) {
     }
 }
 
-fn new_board() -> Vec<Vec<Team>> {
+fn check_direction(
+    new_stone_color: &mut Team,
+    opponent: Team,
+    new_stone: IVec2,
+    adjacent_to_new_stone: IVec2,
+    diff_new_stone_with_pulled_stone: IVec2,
+    mut board: &mut &mut Vec<Vec<Team>>,
+    keep_checking: &mut bool,
+) {
+    if *keep_checking {
+        let pulled_stone = new_stone + diff_new_stone_with_pulled_stone;
+        let pulled_stone_color = get_team(&board, pulled_stone);
+        if *new_stone_color == pulled_stone_color {
+            *keep_checking = false;
+        }
+        if opponent == pulled_stone_color {
+            *get_team_mut(&mut board, adjacent_to_new_stone) = *new_stone_color;
+            *get_team_mut(&mut board, pulled_stone) = Team::Empty;
+            *keep_checking = false;
+        }
+    }
+}
+
+fn new_board(size: i32) -> Vec<Vec<Team>> {
     let mut board = Vec::new();
-    for _ in 0..SIZE {
+    for _ in 0..size {
         let mut column = Vec::new();
-        column.resize(SIZE as usize, Team::Empty);
+        column.resize(size as usize, Team::Empty);
         board.push(column);
     }
     board
@@ -219,5 +240,39 @@ mod tests {
     fn test_get_tile_inside() {
         let tile = get_tile(Rect::new(20.0, 40.0, 80.0, 80.0), 8, Vec2::new(45.0, 55.0));
         assert_eq!(tile, Some(IVec2::new(2, 1)));
+    }
+
+    #[test]
+    fn test_put_stone_basic() {
+        let mut board = new_board(SIZE);
+        board[1][2] = Team::Black;
+        let mut current_turn = Team::White;
+        try_put_stone(&mut current_turn, &mut board, IVec2::new(3, 2));
+        assert_eq!(current_turn, Team::Black);
+        assert_eq!(board[1][2], Team::Empty);
+        assert_eq!(board[2][2], Team::White);
+        assert_eq!(board[3][2], Team::White);
+    }
+
+    #[test]
+    fn test_put_stone_toroid() {
+        let mut board = new_board(SIZE);
+        board[1][2] = Team::Black;
+        let mut current_turn = Team::White;
+        try_put_stone(&mut current_turn, &mut board, IVec2::new(4, 2));
+        assert_eq!(current_turn, Team::Black);
+        assert_eq!(board[1][2], Team::Empty);
+        assert_eq!(board[0][2], Team::White);
+        assert_eq!(board[4][2], Team::White);
+    }
+
+    #[test]
+    fn test_can_not_put_stone() {
+        let mut board = new_board(SIZE);
+        board[1][2] = Team::Black;
+        let mut current_turn = Team::White;
+        try_put_stone(&mut current_turn, &mut board, IVec2::new(1, 2));
+        assert_eq!(current_turn, Team::White);
+        assert_eq!(board[1][2], Team::Black);
     }
 }
