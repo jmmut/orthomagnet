@@ -23,30 +23,25 @@ async fn main() {
         let sw = screen_width();
 
         let board_rect = Rect::new(sw * 0.2, sw * 0.1, sw * 0.6, sw * 0.6);
-        let tile_size_x = board_rect.w / SIZE as f32;
-        let tile_size_y = board_rect.h / SIZE as f32;
         draw_board(board_rect);
         if let Some(tile) = get_tile(board_rect, SIZE, Vec2::from(mouse_position())) {
             let color = if white_turn { WHITE_HINT } else { BLACK_HINT };
-            draw_rectangle(
-                board_rect.x + tile.x as f32 * tile_size_x,
-                board_rect.y + tile.y as f32 * tile_size_y,
-                tile_size_x,
-                tile_size_y,
-                color,
-            );
+            draw_stone(tile, color, board_rect);
             if is_mouse_button_released(MouseButton::Left) {
                 stones.push(tile);
                 white_turn = !white_turn;
             }
         }
-        // for stone in stones
-        // draw_line(40.0, 40.0, 100.0, 200.0, 2.0, BLUE);
-        // draw_rectangle(screen_width() / 2.0 - 60.0, 100.0, 120.0, 60.0, GREEN);
-        // draw_circle(screen_width() - 30.0, screen_height() - 30.0, 15.0, YELLOW);
-        //
-        // draw_text("IT WORKS!", 20.0, 20.0, 30.0, DARKGRAY);
-
+        let mut drawing_white = true;
+        for stone in &stones {
+            let color = if drawing_white {
+                WHITE_FULL
+            } else {
+                BLACK_FULL
+            };
+            drawing_white = !drawing_white;
+            draw_stone(stone.clone(), color, board_rect);
+        }
         next_frame().await
     }
 }
@@ -86,6 +81,18 @@ fn get_tile(board_rect: Rect, size: i32, pos: Vec2) -> Option<IVec2> {
     } else {
         None
     }
+}
+
+fn draw_stone(tile: IVec2, color: Color, board_rect: Rect) {
+    let tile_size_x = board_rect.w / SIZE as f32;
+    let tile_size_y = board_rect.h / SIZE as f32;
+    draw_rectangle(
+        board_rect.x + tile.x as f32 * tile_size_x,
+        board_rect.y + tile.y as f32 * tile_size_y,
+        tile_size_x,
+        tile_size_y,
+        color,
+    );
 }
 
 #[cfg(test)]
