@@ -42,15 +42,13 @@ struct Stone {
 #[macroquad::main(window_conf)]
 async fn main() {
     let mut turn = Team::White;
-    let mut board = Vec::new();
-    for _ in 0..SIZE {
-        let mut column = Vec::new();
-        column.resize(SIZE as usize, Team::Empty);
-        board.push(column);
-    }
+    let mut board = new_board();
     loop {
         if is_key_pressed(KeyCode::Escape) {
             break;
+        }
+        if is_key_pressed(KeyCode::R) {
+            board = new_board();
         }
         clear_background(GRAY);
         let sw = screen_width();
@@ -127,6 +125,16 @@ async fn main() {
         draw_stones(&board, board_rect);
         next_frame().await
     }
+}
+
+fn new_board() -> Vec<Vec<Team>> {
+    let mut board = Vec::new();
+    for _ in 0..SIZE {
+        let mut column = Vec::new();
+        column.resize(SIZE as usize, Team::Empty);
+        board.push(column);
+    }
+    board
 }
 
 fn window_conf() -> Conf {
