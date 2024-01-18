@@ -12,7 +12,7 @@ const WHITE_FULL: Color = Color::new(1.0, 1.0, 1.0, 0.7);
 const BLACK_FULL: Color = Color::new(0.0, 0.0, 0.0, 0.7);
 const TRANSPARENT: Color = Color::new(0.0, 0.0, 0.0, 0.0);
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq)]
 enum Team {
     Empty,
     White,
@@ -64,7 +64,17 @@ async fn main() {
                 let clicked = &mut board[tile.x as usize][tile.y as usize];
                 if let Team::Empty = clicked {
                     *clicked = turn;
-
+                    let side = tile + IVec2::new(1, 0);
+                    if let Team::Empty = get_team(&board, side) {
+                        // space for pulling stones in +x
+                        let opponent = turn.toggle();
+                        for i in 2..SIZE {
+                            let pulled = tile + IVec2::new(i, 0);
+                            if opponent == get_team(&board, pulled) {
+                                move_stone(&mut board, pulled, side);
+                            }
+                        }
+                    }
                     turn = turn.toggle();
                 }
             }
@@ -109,6 +119,23 @@ fn get_tile(board_rect: Rect, size: i32, pos: Vec2) -> Option<IVec2> {
     } else {
         None
     }
+}
+fn get_team(board: &Vec<Vec<Team>>, mut tile: IVec2) -> Team {
+    let x = ((tile.x + SIZE) % SIZE) as usize;
+    let y = ((tile.y + SIZE) % SIZE) as usize;
+    board[x][y]
+}
+
+fn get_team_mut(board: &mut Vec<Vec<Team>>, mut tile: IVec2) -> &mut Team {
+    let x = ((tile.x + SIZE) % SIZE) as usize;
+    let y = ((tile.y + SIZE) % SIZE) as usize;
+    board.get_mut(x).unwrap().get_mut(y).unwrap()
+}
+
+fn move_stone(board: &mut Vec<Vec<Team>>, from: IVec2, to: IVec2) {
+    let moving = get_team(board, from);
+    *get_team_mut(board, from) = get_team(board, to);
+    *get_team_mut(board, to) = moving;
 }
 
 fn draw_stones(board: &Vec<Vec<Team>>, board_rect: Rect) {
