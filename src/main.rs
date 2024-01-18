@@ -77,49 +77,24 @@ fn try_put_stone(turn: &mut Team, mut board: &mut Vec<Vec<Team>>, tile: IVec2) {
         let mut check_yn = Team::Empty == get_team(&board, side_yn);
         // space for pulling stones in +x
         let opponent = turn.toggle();
-        for i in 2..SIZE {
+        let mut check_dir = |adjacent_to_new_stone: IVec2,
+                             diff_new_stone_with_pulled_stone: IVec2,
+                             keep_checking: &mut bool| {
             check_direction(
                 turn,
                 opponent,
                 tile,
-                side_xp,
-                IVec2::new(i, 0),
+                adjacent_to_new_stone,
+                diff_new_stone_with_pulled_stone,
                 &mut board,
-                &mut check_xp,
+                keep_checking,
             );
-            if check_xn {
-                let pulled = tile + IVec2::new(-i, 0);
-                if *turn == get_team(&board, pulled) {
-                    check_xn = false;
-                }
-                if opponent == get_team(&board, pulled) {
-                    *get_team_mut(&mut board, side_xn) = *turn;
-                    *get_team_mut(&mut board, pulled) = Team::Empty;
-                    check_xn = false;
-                }
-            }
-            if check_yp {
-                let pulled = tile + IVec2::new(0, i);
-                if *turn == get_team(&board, pulled) {
-                    check_yp = false;
-                }
-                if opponent == get_team(&board, pulled) {
-                    *get_team_mut(&mut board, side_yp) = *turn;
-                    *get_team_mut(&mut board, pulled) = Team::Empty;
-                    check_yp = false;
-                }
-            }
-            if check_yn {
-                let pulled = tile + IVec2::new(0, -i);
-                if *turn == get_team(&board, pulled) {
-                    check_yn = false;
-                }
-                if opponent == get_team(&board, pulled) {
-                    *get_team_mut(&mut board, side_yn) = *turn;
-                    *get_team_mut(&mut board, pulled) = Team::Empty;
-                    check_yn = false;
-                }
-            }
+        };
+        for i in 2..SIZE {
+            check_dir(side_xp, IVec2::new(i, 0), &mut check_xp);
+            check_dir(side_xn, IVec2::new(-i, 0), &mut check_xn);
+            check_dir(side_yp, IVec2::new(0, i), &mut check_yp);
+            check_dir(side_yn, IVec2::new(0, -i), &mut check_yn);
         }
         *turn = turn.toggle();
     }
