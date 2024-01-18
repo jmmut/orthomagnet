@@ -6,7 +6,7 @@ const DEFAULT_WINDOW_WIDTH: i32 = 800;
 const DEFAULT_WINDOW_HEIGHT: i32 = 800;
 const DEFAULT_WINDOW_TITLE: &str = "orthomagnet";
 
-const FONT_SIZE: f32 = 48.0;
+const FONT_SIZE: f32 = 16.0;
 
 const WHITE_HINT: Color = Color::new(1.0, 1.0, 1.0, 0.3);
 const BLACK_HINT: Color = Color::new(0.0, 0.0, 0.0, 0.3);
@@ -62,6 +62,7 @@ async fn main() {
         }
         draw_stones(&board, board_rect);
         draw_score(board_rect, &board);
+        draw_instructions();
         next_frame().await
     }
 }
@@ -216,25 +217,35 @@ fn draw_score(board_rect: Rect, board: &Vec<Vec<Team>>) {
         }
     }
     let sw = screen_width();
-    // let sh = screen_height();
+    let font_size = FONT_SIZE * 3.0;
 
     let white_str = format!("{}", whites);
-    let white_dimensions = measure_text(&white_str, None, FONT_SIZE as u16, 1.0);
+    let white_dimensions = measure_text(&white_str, None, font_size as u16, 1.0);
     draw_text(
         &white_str,
-        sw * 0.5 - white_dimensions.width * 0.5,
-        board_rect.y - 1.0 * white_dimensions.height,
-        FONT_SIZE,
+        (sw * 0.5 - white_dimensions.width * 0.5).round(),
+        (board_rect.y - 1.0 * white_dimensions.height).round(),
+        font_size,
         WHITE,
     );
     let black_str = format!("{}", blacks);
-    let black_dimensions = measure_text(&black_str, None, FONT_SIZE as u16, 1.0);
+    let black_dimensions = measure_text(&black_str, None, font_size as u16, 1.0);
     draw_text(
         &black_str,
-        sw * 0.5 - black_dimensions.width * 0.5,
-        board_rect.y + board_rect.h + black_dimensions.height + black_dimensions.offset_y,
-        FONT_SIZE,
+        (sw * 0.5 - black_dimensions.width * 0.5).round(),
+        (board_rect.y + board_rect.h + black_dimensions.height + black_dimensions.offset_y).round(),
+        font_size,
         BLACK,
+    );
+}
+
+fn draw_instructions() {
+    draw_text(
+        &"R: Restart",
+        10.0,
+        (screen_height() * 0.5).round(),
+        FONT_SIZE * 1.5,
+        DARKGRAY,
     );
 }
 
