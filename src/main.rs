@@ -1,6 +1,6 @@
 use macroquad::prelude::*;
 
-const SIZE: i32 = 16;
+const SIZE: i32 = 5;
 
 const DEFAULT_WINDOW_WIDTH: i32 = 800;
 const DEFAULT_WINDOW_HEIGHT: i32 = 800;
@@ -64,14 +64,59 @@ async fn main() {
                 let clicked = &mut board[tile.x as usize][tile.y as usize];
                 if let Team::Empty = clicked {
                     *clicked = turn;
-                    let side = tile + IVec2::new(1, 0);
-                    if let Team::Empty = get_team(&board, side) {
-                        // space for pulling stones in +x
-                        let opponent = turn.toggle();
-                        for i in 2..SIZE {
+                    let side_xp = tile + IVec2::new(1, 0);
+                    let side_xn = tile + IVec2::new(-1, 0);
+                    let side_yp = tile + IVec2::new(0, 1);
+                    let side_yn = tile + IVec2::new(0, -1);
+                    let mut check_xp = Team::Empty == get_team(&board, side_xp);
+                    let mut check_xn = Team::Empty == get_team(&board, side_xn);
+                    let mut check_yp = Team::Empty == get_team(&board, side_yp);
+                    let mut check_yn = Team::Empty == get_team(&board, side_yn);
+                    // space for pulling stones in +x
+                    let opponent = turn.toggle();
+                    for i in 2..SIZE {
+                        if check_xp {
                             let pulled = tile + IVec2::new(i, 0);
+                            if turn == get_team(&board, pulled) {
+                                check_xp = false;
+                            }
                             if opponent == get_team(&board, pulled) {
-                                move_stone(&mut board, pulled, side);
+                                *get_team_mut(&mut board, side_xp) = turn;
+                                *get_team_mut(&mut board, pulled) = Team::Empty;
+                                check_xp = false;
+                            }
+                        }
+                        if check_xn {
+                            let pulled = tile + IVec2::new(-i, 0);
+                            if turn == get_team(&board, pulled) {
+                                check_xn = false;
+                            }
+                            if opponent == get_team(&board, pulled) {
+                                *get_team_mut(&mut board, side_xn) = turn;
+                                *get_team_mut(&mut board, pulled) = Team::Empty;
+                                check_xn = false;
+                            }
+                        }
+                        if check_yp {
+                            let pulled = tile + IVec2::new(0, i);
+                            if turn == get_team(&board, pulled) {
+                                check_yp = false;
+                            }
+                            if opponent == get_team(&board, pulled) {
+                                *get_team_mut(&mut board, side_yp) = turn;
+                                *get_team_mut(&mut board, pulled) = Team::Empty;
+                                check_yp = false;
+                            }
+                        }
+                        if check_yn {
+                            let pulled = tile + IVec2::new(0, -i);
+                            if turn == get_team(&board, pulled) {
+                                check_yn = false;
+                            }
+                            if opponent == get_team(&board, pulled) {
+                                *get_team_mut(&mut board, side_yn) = turn;
+                                *get_team_mut(&mut board, pulled) = Team::Empty;
+                                check_yn = false;
                             }
                         }
                     }
