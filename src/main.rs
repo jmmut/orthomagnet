@@ -6,6 +6,8 @@ const DEFAULT_WINDOW_WIDTH: i32 = 800;
 const DEFAULT_WINDOW_HEIGHT: i32 = 800;
 const DEFAULT_WINDOW_TITLE: &str = "orthomagnet";
 
+const FONT_SIZE: f32 = 48.0;
+
 const WHITE_HINT: Color = Color::new(1.0, 1.0, 1.0, 0.3);
 const BLACK_HINT: Color = Color::new(0.0, 0.0, 0.0, 0.3);
 const WHITE_FULL: Color = Color::new(1.0, 1.0, 1.0, 0.7);
@@ -59,6 +61,7 @@ async fn main() {
             }
         }
         draw_stones(&board, board_rect);
+        draw_score(board_rect, &board);
         next_frame().await
     }
 }
@@ -198,6 +201,40 @@ fn draw_stone(tile: IVec2, color: Color, board_rect: Rect) {
         tile_size_x,
         tile_size_y,
         color,
+    );
+}
+fn draw_score(board_rect: Rect, board: &Vec<Vec<Team>>) {
+    let mut whites = 0;
+    let mut blacks = 0;
+    for column in board {
+        for team in column {
+            match team {
+                Team::Empty => {}
+                Team::White => whites += 1,
+                Team::Black => blacks += 1,
+            }
+        }
+    }
+    let sw = screen_width();
+    // let sh = screen_height();
+
+    let white_str = format!("{}", whites);
+    let white_dimensions = measure_text(&white_str, None, FONT_SIZE as u16, 1.0);
+    draw_text(
+        &white_str,
+        sw * 0.5 - white_dimensions.width * 0.5,
+        board_rect.y - 1.0 * white_dimensions.height,
+        FONT_SIZE,
+        WHITE,
+    );
+    let black_str = format!("{}", blacks);
+    let black_dimensions = measure_text(&black_str, None, FONT_SIZE as u16, 1.0);
+    draw_text(
+        &black_str,
+        sw * 0.5 - black_dimensions.width * 0.5,
+        board_rect.y + board_rect.h + black_dimensions.height + black_dimensions.offset_y,
+        FONT_SIZE,
+        BLACK,
     );
 }
 
