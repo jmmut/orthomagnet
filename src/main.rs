@@ -3,11 +3,13 @@ use juquad::widgets::button::{Button, Style};
 use juquad::widgets::text::TextRect;
 use macroquad::prelude::*;
 
-const DEFAULT_WINDOW_WIDTH: i32 = 800;
+const DEFAULT_WINDOW_WIDTH: i32 = 500;
 const DEFAULT_WINDOW_HEIGHT: i32 = 800;
 const DEFAULT_WINDOW_TITLE: &str = "orthomagnet";
 
 const BOARD_TOP_COEF: f32 = 0.1;
+const BOARD_LEFT_COEF: f32 = 0.2;
+const BOARD_SIZE_COEF: f32 = 0.6;
 const FONT_SIZE: f32 = 16.0;
 
 const WHITE_HINT: Color = Color::new(1.0, 1.0, 1.0, 0.3);
@@ -94,23 +96,29 @@ pub struct Buttons {
 }
 
 impl Buttons {
-    pub fn new(screen_height: f32, row_count: i32, column_count: i32) -> Self {
+    pub fn new(screen_width: f32, screen_height: f32, row_count: i32, column_count: i32) -> Self {
         let left_pad = 16.0;
         let vert_pad = 10.0;
         let counter_inner_pad = 0.0;
         let restart = Button::new(
             "Restart (R)",
-            Anchor::top_left(left_pad, (screen_height * BOARD_TOP_COEF).round()),
+            Anchor::top_left(
+                (BOARD_LEFT_COEF * screen_width).round(),
+                (screen_height * (BOARD_SIZE_COEF + BOARD_TOP_COEF * 2.0)).round(),
+            ),
             FONT_SIZE,
         );
         let size_text = TextRect::new(
             "rows * columns:",
-            from_below(restart.rect(), -left_pad, vert_pad * 4.0),
+            Anchor::top_right(
+                ((1.0 - BOARD_LEFT_COEF) * screen_width + left_pad).round(),
+                (screen_height * (BOARD_SIZE_COEF + BOARD_TOP_COEF * 2.0)).round(),
+            ),
             FONT_SIZE,
         );
         let rows = Counter::new(
             row_count,
-            from_below(size_text.rect, left_pad, vert_pad),
+            from_below(size_text.rect, 2.0 * left_pad, vert_pad), // TODO: should align to the right instead of 2*left_pad
             counter_inner_pad,
         );
         let columns = Counter::new(
@@ -130,11 +138,18 @@ impl Buttons {
 #[macroquad::main(window_conf)]
 async fn main() {
     let mut turn = Team::White;
-    let mut size_rows = 5;
+    let mut size_rows = 7;
     let mut size_columns = 5;
     let mut board = new_board(size_rows, size_columns);
-    let mut buttons = Buttons::new(screen_height(), size_rows, size_columns);
+    let mut prev_sw = screen_width();
+    let mut prev_sh = screen_height();
+    let mut buttons = Buttons::new(prev_sw, prev_sh, size_rows, size_columns);
     loop {
+        if screen_height() != prev_sh || screen_width() != prev_sw {
+            prev_sw = screen_width();
+            prev_sh = screen_height();
+            buttons = Buttons::new(prev_sw, prev_sh, size_rows, size_columns);
+        }
         if is_key_pressed(KeyCode::Escape) {
             break;
         }
@@ -146,7 +161,12 @@ async fn main() {
         let sw = screen_width();
         let sh = screen_height();
 
-        let board_rect = Rect::new(sw * 0.2, sh * BOARD_TOP_COEF, sw * 0.6, sh * 0.6);
+        let board_rect = Rect::new(
+            sw * 0.2,
+            sh * BOARD_TOP_COEF,
+            sw * BOARD_SIZE_COEF,
+            sh * BOARD_SIZE_COEF,
+        );
         draw_board_lines(board_rect, size_rows, size_columns);
         if let Some(tile) = get_tile(
             board_rect,
