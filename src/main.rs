@@ -1,3 +1,5 @@
+use juquad::widgets::anchor::Anchor;
+use juquad::widgets::button::{Button, Style};
 use macroquad::prelude::*;
 
 const SIZE: i32 = 5;
@@ -37,15 +39,29 @@ impl Team {
     }
 }
 
+pub struct Buttons {
+    pub restart: Button,
+}
+
+impl Buttons {
+    pub fn new(screen_height: f32) -> Self {
+        Self { restart: Button::new("Restart (R)",
+                                    Anchor::top_left(10.0, (screen_height * 0.5).round()),
+                                    FONT_SIZE)
+        }
+    }
+}
+
 #[macroquad::main(window_conf)]
 async fn main() {
     let mut turn = Team::White;
     let mut board = new_board(SIZE);
+    let mut buttons = Buttons::new(screen_height());
     loop {
         if is_key_pressed(KeyCode::Escape) {
             break;
         }
-        if is_key_pressed(KeyCode::R) {
+        if is_key_pressed(KeyCode::R) || buttons.restart.interact().is_clicked() {
             board = new_board(SIZE);
         }
         clear_background(GRAY);
@@ -62,7 +78,7 @@ async fn main() {
         }
         draw_stones(&board, board_rect);
         draw_score(board_rect, &board);
-        draw_instructions();
+        draw_instructions(&buttons);
         next_frame().await
     }
 }
@@ -239,14 +255,9 @@ fn draw_score(board_rect: Rect, board: &Vec<Vec<Team>>) {
     );
 }
 
-fn draw_instructions() {
-    draw_text(
-        &"R: Restart",
-        10.0,
-        (screen_height() * 0.5).round(),
-        FONT_SIZE * 1.5,
-        DARKGRAY,
-    );
+fn draw_instructions(buttons: &Buttons) {
+    static STYLE: Style = Style::new();
+    buttons.restart.render(&STYLE);
 }
 
 #[cfg(test)]
