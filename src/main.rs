@@ -83,6 +83,9 @@ impl Counter {
 fn from_below(other: Rect, x_diff: f32, y_diff: f32) -> Anchor {
     Anchor::top_left(other.x + x_diff, other.y + other.h + y_diff)
 }
+fn from_right(other: Rect, x_diff: f32, y_diff: f32) -> Anchor {
+    Anchor::top_left(other.x + other.w + x_diff, other.y + y_diff)
+}
 pub struct Buttons {
     pub restart: Button,
     pub size_text: TextRect,
@@ -107,12 +110,12 @@ impl Buttons {
         );
         let rows = Counter::new(
             row_count,
-            Anchor::top_left(left_pad, size_text.rect.y + size_text.rect.h + vert_pad),
+            from_below(size_text.rect, left_pad, vert_pad),
             counter_inner_pad,
         );
         let columns = Counter::new(
             column_count,
-            Anchor::top_left(left_pad * 1.5 + rows.rect.w, rows.rect.y),
+            from_right(rows.rect, left_pad * 0.5, 0.0),
             counter_inner_pad,
         );
         Self {
