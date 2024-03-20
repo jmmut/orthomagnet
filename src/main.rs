@@ -47,9 +47,8 @@ pub struct Counter {
     pub rect: Rect,
 }
 impl Counter {
-    pub fn new(count: i32, (top_left_x, top_left_y): (f32, f32), vertical_pad: f32) -> Self {
-        // TODO take anchor
-        let increase = Button::new("+", Anchor::top_left(top_left_x, top_left_y), FONT_SIZE);
+    pub fn new(count: i32, position: Anchor, vertical_pad: f32) -> Self {
+        let increase = Button::new("+", position, FONT_SIZE);
         let counter = TextRect::new(
             count.to_string().as_str(),
             from_below(increase.rect(), 0.0, vertical_pad),
@@ -108,12 +107,12 @@ impl Buttons {
         );
         let rows = Counter::new(
             row_count,
-            (left_pad, size_text.rect.y + size_text.rect.h + vert_pad),
+            Anchor::top_left(left_pad, size_text.rect.y + size_text.rect.h + vert_pad),
             counter_inner_pad,
         );
         let columns = Counter::new(
             column_count,
-            (left_pad * 1.5 + rows.rect.w, rows.rect.y),
+            Anchor::top_left(left_pad * 1.5 + rows.rect.w, rows.rect.y),
             counter_inner_pad,
         );
         Self {
