@@ -3,20 +3,33 @@ use juquad::widgets::button::{Button, Style};
 use juquad::widgets::text::TextRect;
 use macroquad::prelude::*;
 
-const DEFAULT_WINDOW_WIDTH: i32 = 500;
+const DEFAULT_WINDOW_WIDTH: i32 = 450;
 const DEFAULT_WINDOW_HEIGHT: i32 = 800;
 const DEFAULT_WINDOW_TITLE: &str = "orthomagnet";
 
 const BOARD_TOP_COEF: f32 = 0.1;
 const BOARD_LEFT_COEF: f32 = 0.2;
 const BOARD_SIZE_COEF: f32 = 0.6;
-const FONT_SIZE: f32 = 16.0;
 
 const WHITE_HINT: Color = Color::new(1.0, 1.0, 1.0, 0.3);
 const BLACK_HINT: Color = Color::new(0.0, 0.0, 0.0, 0.3);
 const WHITE_FULL: Color = Color::new(1.0, 1.0, 1.0, 0.7);
 const BLACK_FULL: Color = Color::new(0.0, 0.0, 0.0, 0.7);
 const TRANSPARENT: Color = Color::new(0.0, 0.0, 0.0, 0.0);
+
+
+fn choose_font_size(width: f32, height: f32) -> f32 {
+    const FONT_SIZE: f32 = 16.0;
+    let min_side = height.min(width * 16.0 / 9.0);
+    FONT_SIZE
+        * if min_side < 1200.0 {
+        1.0
+    } else if min_side < 1800.0 {
+        1.5
+    } else {
+        2.0
+    }
+}
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 enum Team {
@@ -49,14 +62,14 @@ pub struct Counter {
     pub rect: Rect,
 }
 impl Counter {
-    pub fn new(count: i32, position: Anchor, vertical_pad: f32) -> Self {
-        let increase = Button::new("+", position, FONT_SIZE);
+    pub fn new(count: i32, position: Anchor, vertical_pad: f32, font_size: f32) -> Self {
+        let increase = Button::new("+", position, font_size);
         let counter = TextRect::new(
             count.to_string().as_str(),
             from_below(increase.rect(), 0.0, vertical_pad),
-            FONT_SIZE,
+            font_size,
         );
-        let decrease = Button::new("-", from_below(counter.rect, 0.0, vertical_pad), FONT_SIZE);
+        let decrease = Button::new("-", from_below(counter.rect, 0.0, vertical_pad), font_size);
         let rect = increase
             .rect()
             .combine_with(counter.rect)
@@ -73,7 +86,7 @@ impl Counter {
         self.counter = TextRect::new(
             new_count.to_string().as_str(),
             from_below(self.increase.rect(), 0.0, self.vertical_pad),
-            FONT_SIZE,
+            self.counter.font_size,
         )
     }
     pub fn render(&self, style: &Style) {
@@ -97,6 +110,7 @@ pub struct Buttons {
 
 impl Buttons {
     pub fn new(screen_width: f32, screen_height: f32, row_count: i32, column_count: i32) -> Self {
+        let font_size = choose_font_size(screen_width, screen_height);
         let left_pad = 16.0;
         let vert_pad = 10.0;
         let counter_inner_pad = 0.0;
@@ -106,7 +120,7 @@ impl Buttons {
                 (BOARD_LEFT_COEF * screen_width).round(),
                 (screen_height * (BOARD_SIZE_COEF + BOARD_TOP_COEF * 2.0)).round(),
             ),
-            FONT_SIZE,
+            font_size,
         );
         let size_text = TextRect::new(
             "rows * columns:",
@@ -114,17 +128,19 @@ impl Buttons {
                 ((1.0 - BOARD_LEFT_COEF) * screen_width + left_pad).round(),
                 (screen_height * (BOARD_SIZE_COEF + BOARD_TOP_COEF * 2.0)).round(),
             ),
-            FONT_SIZE,
+            font_size,
         );
         let rows = Counter::new(
             row_count,
             from_below(size_text.rect, 2.0 * left_pad, vert_pad), // TODO: should align to the right instead of 2*left_pad
             counter_inner_pad,
+            font_size,
         );
         let columns = Counter::new(
             column_count,
             from_right(rows.rect, left_pad * 0.5, 0.0),
             counter_inner_pad,
+            font_size,
         );
         Self {
             restart,
@@ -386,7 +402,7 @@ fn draw_score(board_rect: Rect, board: &Vec<Vec<Team>>) {
         }
     }
     let sw = screen_width();
-    let font_size = FONT_SIZE * 3.0;
+    let font_size = choose_font_size(sw, screen_height()) * 3.0;
 
     let white_str = format!("{}", whites);
     let white_dimensions = measure_text(&white_str, None, font_size as u16, 1.0);
