@@ -1,7 +1,7 @@
 use juquad::draw::{draw_rect, draw_rect_lines};
 use juquad::input::input_macroquad::InputMacroquad;
 use juquad::widgets::anchor::Anchor;
-use juquad::widgets::button::{draw_panel_border, Button, Interaction, InteractionStyle, Style};
+use juquad::widgets::button::{Button, Interaction, InteractionStyle, Style};
 use juquad::widgets::text::TextRect;
 use macroquad::prelude::*;
 
@@ -9,9 +9,10 @@ const DEFAULT_WINDOW_WIDTH: i32 = 450;
 const DEFAULT_WINDOW_HEIGHT: i32 = 800;
 const DEFAULT_WINDOW_TITLE: &str = "orthomagnet";
 
-const BOARD_TOP_COEF: f32 = 0.1;
-const BOARD_LEFT_COEF: f32 = 0.2;
-const BOARD_SIZE_COEF: f32 = 0.6;
+const BOARD_TOP_COEF: f32 = 0.12;
+const BOARD_LEFT_COEF: f32 = 0.15;
+const BOARD_WIDTH_COEF: f32 = 1.0 - 2.0 * BOARD_LEFT_COEF;
+const BOARD_HEIGHT_COEF: f32 = 0.6;
 
 const WHITE_HINT: Color = Color::new(1.0, 1.0, 1.0, 0.3);
 const BLACK_HINT: Color = Color::new(0.0, 0.0, 0.0, 0.3);
@@ -82,21 +83,28 @@ pub struct Counter {
 }
 impl Counter {
     pub fn new(count: i32, position: Anchor, vertical_pad: f32, font_size: f32) -> Self {
-        let increase = new_button("+", position, font_size);
-        let counter = TextRect::new(
+        let tmp_anchor = Anchor::top_left(0.0, 0.0);
+        let mut increase = new_button("+", tmp_anchor, font_size);
+        let mut counter = TextRect::new(
             count.to_string().as_str(),
             from_below(increase.rect(), 0.0, vertical_pad),
             font_size,
         );
-        let decrease = new_button(
+        let mut decrease = new_button(
             "-",
             Anchor::from_below(counter.rect, 0.0, vertical_pad),
             font_size,
         );
-        let rect = increase
+        let mut rect = increase
             .rect()
             .combine_with(counter.rect)
             .combine_with(decrease.rect());
+
+        let diff = position.get_top_left_pixel(rect.size());
+        increase.text_rect.rect = increase.text_rect.rect.offset(diff);
+        counter.rect = counter.rect.offset(diff);
+        decrease.text_rect.rect = decrease.text_rect.rect.offset(diff);
+        rect = rect.offset(diff);
         Self {
             vertical_pad,
             increase,
@@ -168,26 +176,17 @@ impl Buttons {
     pub fn new(screen_width: f32, screen_height: f32, row_count: i32, column_count: i32) -> Self {
         let font_size = choose_font_size(screen_width, screen_height);
         let left_pad = 16.0;
-        let vert_pad = 10.0;
         let counter_inner_pad = 0.0;
-        let restart = new_button(
-            "Restart",
-            Anchor::top_left(
-                (BOARD_LEFT_COEF * screen_width).round(),
-                (screen_height * (BOARD_SIZE_COEF + BOARD_TOP_COEF * 2.0)).round(),
-            ),
-            font_size * 1.5,
-        );
-        let undo = new_button(
-            "Undo",
-            Anchor::from_below(restart.rect(), 0.0, restart.rect().h),
-            font_size * 1.5,
-        );
+        let left = (BOARD_LEFT_COEF * screen_width).round();
+        let bottom = (screen_height * (1.0 - BOARD_TOP_COEF)
+            + score_font_size(screen_width, screen_height))
+        .round();
+        let undo = new_button("Undo", Anchor::bottom_left(left, bottom), font_size * 1.5);
+        let restart_anchor = Anchor::bottom_left(undo.rect().x, undo.rect().y - undo.rect().h);
+        let restart = new_button("Restart", restart_anchor, font_size * 1.5);
 
-        let anchor_columns = Anchor::top_right(
-            ((1.0 - BOARD_LEFT_COEF) * screen_width + left_pad).round(),
-            (screen_height * (BOARD_SIZE_COEF + BOARD_TOP_COEF * 2.0)).round(),
-        );
+        let anchor_columns =
+            Anchor::bottom_right(((1.0 - BOARD_LEFT_COEF) * screen_width).round(), bottom);
         let columns = Counter::new(
             column_count,
             anchor_columns,
@@ -211,6 +210,7 @@ async fn main() {
     let mut size_rows = 7;
     let mut size_columns = 5;
     let mut board = new_board(size_rows, size_columns);
+    let mut board_history = Vec::new();
     let mut prev_sw = screen_width();
     let mut prev_sh = screen_height();
     let mut buttons = Buttons::new(prev_sw, prev_sh, size_rows, size_columns);
@@ -226,16 +226,27 @@ async fn main() {
         if is_key_pressed(KeyCode::R) || buttons.restart.interact().is_clicked() {
             board = new_board(size_rows, size_columns);
         }
+        if is_key_pressed(KeyCode::Z) && is_key_down(KeyCode::LeftControl)
+            || buttons.undo.interact().is_clicked()
+        {
+            if let Some(b) = board_history.pop() {
+                board = b;
+                turn = turn.toggle()
+            }
+        }
+        if is_mouse_button_pressed(MouseButton::Right) {
+            println!("{}", Vec2::from(mouse_position()));
+        }
         maybe_change_size(&mut size_rows, &mut size_columns, &mut buttons, &mut board);
         clear_background(GRAY);
         let sw = screen_width();
         let sh = screen_height();
 
         let board_rect = Rect::new(
-            sw * 0.2,
+            sw * BOARD_LEFT_COEF,
             sh * BOARD_TOP_COEF,
-            sw * BOARD_SIZE_COEF,
-            sh * BOARD_SIZE_COEF,
+            sw * BOARD_WIDTH_COEF,
+            sh * BOARD_HEIGHT_COEF,
         );
         draw_board_lines(board_rect, size_rows, size_columns);
         if let Some(tile) = get_tile(
@@ -246,7 +257,12 @@ async fn main() {
             let color = turn.choose(TRANSPARENT, WHITE_HINT, BLACK_HINT);
             draw_stone(tile, color, board_rect, size_rows, size_columns);
             if is_mouse_button_released(MouseButton::Left) {
+                board_history.push(board.clone());
+                let previous_turn = turn;
                 try_put_stone(&mut turn, &mut board, tile);
+                if turn == previous_turn {
+                    board_history.pop();
+                }
             }
         }
         draw_stones(&board, board_rect, size_rows, size_columns);
@@ -455,8 +471,7 @@ fn draw_score(board_rect: Rect, board: &Vec<Vec<Team>>) {
             }
         }
     }
-    let sw = screen_width();
-    let font_size = choose_font_size(sw, screen_height()) * 3.0;
+    let font_size = score_font_size(screen_width(), screen_height());
 
     let white_str = format!("{}", whites);
     let white_dimensions = measure_text(&white_str, None, font_size as u16, 1.0);
@@ -475,6 +490,10 @@ fn draw_score(board_rect: Rect, board: &Vec<Vec<Team>>) {
         font_size,
         BLACK,
     );
+}
+
+fn score_font_size(screen_w: f32, screen_h: f32) -> f32 {
+    choose_font_size(screen_w, screen_h) * 3.0
 }
 
 fn draw_instructions(buttons: &Buttons) {
