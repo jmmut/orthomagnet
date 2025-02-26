@@ -1,6 +1,7 @@
 use juquad::draw::{draw_rect, draw_rect_lines};
+use juquad::input::input_macroquad::InputMacroquad;
 use juquad::widgets::anchor::Anchor;
-use juquad::widgets::button::{Button, Style};
+use juquad::widgets::button::{draw_panel_border, Button, Interaction, InteractionStyle, Style};
 use juquad::widgets::text::TextRect;
 use macroquad::prelude::*;
 
@@ -18,18 +19,35 @@ const WHITE_FULL: Color = Color::new(1.0, 1.0, 1.0, 0.7);
 const BLACK_FULL: Color = Color::new(0.0, 0.0, 0.0, 0.7);
 const TRANSPARENT: Color = Color::new(0.0, 0.0, 0.0, 0.0);
 
+const STYLE: Style = Style {
+    bg_color: InteractionStyle {
+        at_rest: LIGHTGRAY,
+        hovered: WHITE,
+        pressed: DARKGRAY,
+    },
+    text_color: InteractionStyle {
+        at_rest: DARKGRAY,
+        hovered: BLACK,
+        pressed: LIGHTGRAY,
+    },
+    border_color: InteractionStyle {
+        at_rest: DARKGRAY,
+        hovered: BLACK,
+        pressed: LIGHTGRAY,
+    },
+};
 
 fn choose_font_size(width: f32, height: f32) -> f32 {
     const FONT_SIZE: f32 = 16.0;
     let min_side = height.min(width * 16.0 / 9.0);
     FONT_SIZE
         * if min_side < 1200.0 {
-        1.0
-    } else if min_side < 1800.0 {
-        1.5
-    } else {
-        2.0
-    }
+            1.0
+        } else if min_side < 1800.0 {
+            1.5
+        } else {
+            2.0
+        }
 }
 
 #[derive(Copy, Clone, PartialEq, Debug)]
@@ -64,13 +82,17 @@ pub struct Counter {
 }
 impl Counter {
     pub fn new(count: i32, position: Anchor, vertical_pad: f32, font_size: f32) -> Self {
-        let increase = Button::new("+", position, font_size);
+        let increase = new_button("+", position, font_size);
         let counter = TextRect::new(
             count.to_string().as_str(),
             from_below(increase.rect(), 0.0, vertical_pad),
             font_size,
         );
-        let decrease = Button::new("-", from_below(counter.rect, 0.0, vertical_pad), font_size);
+        let decrease = new_button(
+            "-",
+            Anchor::from_below(counter.rect, 0.0, vertical_pad),
+            font_size,
+        );
         let rect = increase
             .rect()
             .combine_with(counter.rect)
@@ -83,6 +105,7 @@ impl Counter {
             rect,
         }
     }
+
     pub fn update(&mut self, new_count: i32) {
         self.counter = TextRect::new(
             new_count.to_string().as_str(),
@@ -91,20 +114,52 @@ impl Counter {
         )
     }
     pub fn render(&self, style: &Style) {
-        draw_rect(self.increase.rect().combine_with(self.decrease.rect()), DARKGRAY);
+        draw_rect(
+            self.increase.rect().combine_with(self.decrease.rect()),
+            DARKGRAY,
+        );
         self.increase.render(style);
         self.counter.render_text(LIGHTGRAY);
         self.decrease.render(style);
     }
 }
+
+fn new_button(text: &str, position: Anchor, font_size: f32) -> Button {
+    Button::new_from_text_rect_generic(
+        TextRect::new(text, position, font_size),
+        render_button,
+        Box::new(InputMacroquad),
+    )
+}
+fn render_button(interaction: Interaction, text_rect: &TextRect, style: &Style) {
+    let (bg_color, text_color, border_color) = match interaction {
+        Interaction::Clicked | Interaction::Pressing => (
+            style.bg_color.pressed,
+            style.text_color.pressed,
+            style.border_color.pressed,
+        ),
+        Interaction::Hovered => (
+            style.bg_color.hovered,
+            style.text_color.hovered,
+            style.border_color.hovered,
+        ),
+        Interaction::None => (
+            style.bg_color.at_rest,
+            style.text_color.at_rest,
+            style.border_color.at_rest,
+        ),
+    };
+    let rect = text_rect.rect;
+    draw_rect(rect, bg_color);
+    draw_rect_lines(rect, 2.0, border_color);
+    text_rect.render_text(text_color);
+}
 fn from_below(other: Rect, x_diff: f32, y_diff: f32) -> Anchor {
     Anchor::top_left(other.x + x_diff, other.y + other.h + y_diff)
 }
-fn from_right(other: Rect, x_diff: f32, y_diff: f32) -> Anchor {
-    Anchor::top_left(other.x + other.w + x_diff, other.y + y_diff)
-}
 pub struct Buttons {
     pub restart: Button,
+    pub undo: Button,
     pub rows: Counter,
     pub columns: Counter,
 }
@@ -115,13 +170,18 @@ impl Buttons {
         let left_pad = 16.0;
         let vert_pad = 10.0;
         let counter_inner_pad = 0.0;
-        let restart = Button::new(
-            "Restart (R)",
+        let restart = new_button(
+            "Restart",
             Anchor::top_left(
                 (BOARD_LEFT_COEF * screen_width).round(),
                 (screen_height * (BOARD_SIZE_COEF + BOARD_TOP_COEF * 2.0)).round(),
             ),
-            font_size,
+            font_size * 1.5,
+        );
+        let undo = new_button(
+            "Undo",
+            Anchor::from_below(restart.rect(), 0.0, restart.rect().h),
+            font_size * 1.5,
         );
 
         let anchor_columns = Anchor::top_right(
@@ -134,15 +194,11 @@ impl Buttons {
             counter_inner_pad,
             font_size * 1.5,
         );
-        let anchor_rows = Anchor::top_right(columns.rect.x - left_pad*0.5, columns.rect.y);
-        let rows = Counter::new(
-            row_count,
-            anchor_rows,
-            counter_inner_pad,
-            font_size * 1.5,
-        );
+        let anchor_rows = Anchor::top_right(columns.rect.x - left_pad * 0.5, columns.rect.y);
+        let rows = Counter::new(row_count, anchor_rows, counter_inner_pad, font_size * 1.5);
         Self {
             restart,
+            undo,
             rows,
             columns,
         }
@@ -422,12 +478,11 @@ fn draw_score(board_rect: Rect, board: &Vec<Vec<Team>>) {
 }
 
 fn draw_instructions(buttons: &Buttons) {
-    static STYLE: Style = Style::new();
     buttons.restart.render(&STYLE);
+    buttons.undo.render(&STYLE);
 }
 
 fn draw_size(buttons: &Buttons) {
-    static STYLE: Style = Style::new();
     buttons.rows.render(&STYLE);
     buttons.columns.render(&STYLE);
 }
