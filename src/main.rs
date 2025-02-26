@@ -408,17 +408,16 @@ fn draw_score(board_rect: Rect, board: &Vec<Vec<Team>>) {
     let white_dimensions = measure_text(&white_str, None, font_size as u16, 1.0);
     draw_text(
         &white_str,
-        (sw * 0.5 - white_dimensions.width * 0.5).round(),
+        (board_rect.right() - white_dimensions.width).round(),
         (board_rect.y - 1.0 * white_dimensions.height).round(),
         font_size,
         WHITE,
     );
     let black_str = format!("{}", blacks);
-    let black_dimensions = measure_text(&black_str, None, font_size as u16, 1.0);
     draw_text(
         &black_str,
-        (sw * 0.5 - black_dimensions.width * 0.5).round(),
-        (board_rect.y + board_rect.h + black_dimensions.height + black_dimensions.offset_y).round(),
+        board_rect.left().round(),
+        (board_rect.y - 1.0 * white_dimensions.height).round(),
         font_size,
         BLACK,
     );
