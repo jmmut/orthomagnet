@@ -1,3 +1,4 @@
+use juquad::draw::{draw_rect, draw_rect_lines};
 use juquad::widgets::anchor::Anchor;
 use juquad::widgets::button::{Button, Style};
 use juquad::widgets::text::TextRect;
@@ -90,8 +91,9 @@ impl Counter {
         )
     }
     pub fn render(&self, style: &Style) {
+        draw_rect(self.increase.rect().combine_with(self.decrease.rect()), DARKGRAY);
         self.increase.render(style);
-        self.counter.render_text(style.text_color.at_rest);
+        self.counter.render_text(LIGHTGRAY);
         self.decrease.render(style);
     }
 }
@@ -103,7 +105,6 @@ fn from_right(other: Rect, x_diff: f32, y_diff: f32) -> Anchor {
 }
 pub struct Buttons {
     pub restart: Button,
-    pub size_text: TextRect,
     pub rows: Counter,
     pub columns: Counter,
 }
@@ -122,29 +123,26 @@ impl Buttons {
             ),
             font_size,
         );
-        let size_text = TextRect::new(
-            "rows * columns:",
-            Anchor::top_right(
-                ((1.0 - BOARD_LEFT_COEF) * screen_width + left_pad).round(),
-                (screen_height * (BOARD_SIZE_COEF + BOARD_TOP_COEF * 2.0)).round(),
-            ),
-            font_size,
-        );
-        let rows = Counter::new(
-            row_count,
-            from_below(size_text.rect, 2.0 * left_pad, vert_pad), // TODO: should align to the right instead of 2*left_pad
-            counter_inner_pad,
-            font_size,
+
+        let anchor_columns = Anchor::top_right(
+            ((1.0 - BOARD_LEFT_COEF) * screen_width + left_pad).round(),
+            (screen_height * (BOARD_SIZE_COEF + BOARD_TOP_COEF * 2.0)).round(),
         );
         let columns = Counter::new(
             column_count,
-            from_right(rows.rect, left_pad * 0.5, 0.0),
+            anchor_columns,
             counter_inner_pad,
-            font_size,
+            font_size * 1.5,
+        );
+        let anchor_rows = Anchor::top_right(columns.rect.x - left_pad*0.5, columns.rect.y);
+        let rows = Counter::new(
+            row_count,
+            anchor_rows,
+            counter_inner_pad,
+            font_size * 1.5,
         );
         Self {
             restart,
-            size_text,
             rows,
             columns,
         }
@@ -430,7 +428,6 @@ fn draw_instructions(buttons: &Buttons) {
 
 fn draw_size(buttons: &Buttons) {
     static STYLE: Style = Style::new();
-    buttons.size_text.render_text(STYLE.text_color.at_rest);
     buttons.rows.render(&STYLE);
     buttons.columns.render(&STYLE);
 }

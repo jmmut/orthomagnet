@@ -7,5 +7,5 @@ edition = "2021"
 
 [dependencies]
 macroquad = "=0.3.24"
-juquad = { git = "https://github.com/jmmut/juquad.git", tag = "0.3.1" }
+juquad = { git = "https://github.com/jmmut/juquad.git", tag = "0.6.0" }
 
