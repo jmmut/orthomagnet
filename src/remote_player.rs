@@ -45,7 +45,7 @@ fn handle_client(
 ) -> Result<(), AnyError> {
     let mut data = [0 as u8; 500];
     stream
-        .set_read_timeout(Some(Duration::from_millis(100)))
+        .set_read_timeout(Some(Duration::from_millis(10)))
         .unwrap();
     loop {
         let should_continue = match stream.read(&mut data) {
@@ -108,7 +108,7 @@ fn connect_thread(
 ) -> Result<(), AnyError> {
     let mut stream = TcpStream::connect("127.0.0.1:31415")?;
     stream
-        .set_read_timeout(Some(Duration::from_millis(100)))
+        .set_read_timeout(Some(Duration::from_millis(10)))
         .unwrap();
     let mut buf = [0; 500];
     loop {
