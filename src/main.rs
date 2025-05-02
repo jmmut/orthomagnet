@@ -195,6 +195,7 @@ async fn try_main() -> Result<(), AnyError> {
     let mut prev_sh = screen_height();
     let mut buttons = Buttons::new(prev_sw, prev_sh, size_rows, size_columns);
     let mut remote_mouse = None;
+    let mut previous_mouse_tile = None;
     let mut from_client: Option<Receiver<Command>> = None;
     let mut to_client: Option<Sender<Command>> = None;
     let mut from_server: Option<Receiver<Command>> = None;
@@ -275,10 +276,10 @@ async fn try_main() -> Result<(), AnyError> {
                             remote_mouse = Some(IVec2::new(x, y));
                         }
                     }
-                    if let Some(tile) = remote_mouse {
-                        let color = BLACK_HINT;
-                        draw_stone(tile, color, board_rect, size_rows, size_columns);
-                    }
+                }
+                if let Some(tile) = remote_mouse.as_ref() {
+                    let color = BLACK_HINT;
+                    draw_stone(*tile, color, board_rect, size_rows, size_columns);
                 }
                 if let Some(tile) = get_tile(
                     board_rect,
@@ -295,12 +296,24 @@ async fn try_main() -> Result<(), AnyError> {
                     (size_rows, size_columns),
                     Vec2::from(mouse_position()),
                 ) {
-                    let command = Command::StoneHover {
-                        x: tile.x,
-                        y: tile.y,
+                    let send = if let Some(previous_tile) = previous_mouse_tile {
+                        if tile != previous_tile {
+                            true
+                        } else {
+                            false
+                        }
+                    } else {
+                        true
                     };
-                    println!("sending client command from main loop {:?}", command);
-                    to_server.as_mut().unwrap().send(command)?;
+                    previous_mouse_tile = Some(tile);
+                    if send {
+                        let command = Command::StoneHover {
+                            x: tile.x,
+                            y: tile.y,
+                        };
+                        println!("sending client command from main loop {:?}", command);
+                        to_server.as_mut().unwrap().send(command)?;
+                    }
                     // TODO: receive from server
                     let color = turn.choose(TRANSPARENT, WHITE_HINT, BLACK_HINT);
                     draw_stone(tile, color, board_rect, size_rows, size_columns);
@@ -312,6 +325,8 @@ async fn try_main() -> Result<(), AnyError> {
                             board_history.pop();
                         }
                     }
+                } else {
+                    previous_mouse_tile = None;
                 }
             }
         }
