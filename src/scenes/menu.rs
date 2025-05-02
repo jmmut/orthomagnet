@@ -1,11 +1,10 @@
-use crate::STYLE;
+use crate::{choose_font_size, render_button_flat, STYLE};
 use juquad::widgets::anchor::Anchor;
 use juquad::widgets::button::Button;
 use juquad::widgets::button_group::ButtonGroup;
 use macroquad::color::GRAY;
 use macroquad::input::{is_key_pressed, KeyCode};
 use macroquad::prelude::{clear_background, next_frame, screen_height, screen_width, Vec2};
-use orthomagnet::{choose_font_size, render_button_flat};
 
 #[derive(Debug)]
 pub enum Player {
@@ -15,12 +14,14 @@ pub enum Player {
 }
 
 pub async fn menu_scene() -> Option<Player> {
-    let width = screen_width();
-    let height = screen_height();
+    let mut width = screen_width();
+    let mut height = screen_height();
     let (mut _font_size, mut buttons) = reset(width, height);
     loop {
         let new_width = screen_width();
         let new_height = screen_height();
+        width = new_width;
+        height = new_height;
         if new_width != width || new_height != height {
             (_font_size, buttons) = reset(width, height);
         }

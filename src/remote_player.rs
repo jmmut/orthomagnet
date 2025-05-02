@@ -1,5 +1,5 @@
+use crate::AnyError;
 use nanoserde::{DeBin, SerBin};
-use orthomagnet::AnyError;
 use std::io::{ErrorKind, Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::sync::mpsc::{Receiver, Sender};
@@ -10,6 +10,7 @@ use std::time::Duration;
 pub enum Command {
     StoneHover { x: i32, y: i32 },
     StopStoneHover,
+    Connected,
 }
 
 #[must_use]
@@ -33,6 +34,7 @@ fn server_thread(
     println!("Server listening on port 31415");
     loop {
         let (stream, _socket_addr) = listener.accept()?;
+        from_client.send(Command::Connected)?;
         println!("New connection: {}", stream.peer_addr().unwrap());
         handle_client(stream, &mut from_client, &mut to_client)?;
     }
@@ -44,6 +46,7 @@ fn handle_client(
     to_client: &mut Receiver<Command>,
 ) -> Result<(), AnyError> {
     let mut data = [0 as u8; 500];
+    // TODO: make sure the buffer is clean everytime before reading. use the de_bin(offset, buf)
     stream
         .set_read_timeout(Some(Duration::from_millis(10)))
         .unwrap();

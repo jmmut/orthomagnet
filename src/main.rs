@@ -1,15 +1,13 @@
-mod menu;
-mod remote_player;
-
-use crate::menu::{menu_scene, Player};
-use crate::remote_player::{connect, serve, Command};
 use juquad::draw::{draw_rect, draw_rect_lines};
 use juquad::input::input_macroquad::InputMacroquad;
 use juquad::widgets::anchor::Anchor;
 use juquad::widgets::button::{Button, Interaction, InteractionStyle, Style};
 use juquad::widgets::text::TextRect;
 use macroquad::prelude::*;
-use orthomagnet::{choose_font_size, render_button_flat, AnyError};
+use orthomagnet::remote_player::{connect, serve, Command};
+use orthomagnet::scenes::menu::{menu_scene, Player};
+use orthomagnet::scenes::server_waiting::server_waiting_scene;
+use orthomagnet::{choose_font_size, new_button, render_button_flat, AnyError, STYLE};
 use std::sync::mpsc::{Receiver, Sender};
 
 const DEFAULT_WINDOW_WIDTH: i32 = 450;
@@ -26,24 +24,6 @@ const BLACK_HINT: Color = Color::new(0.0, 0.0, 0.0, 0.3);
 const WHITE_FULL: Color = Color::new(1.0, 1.0, 1.0, 0.7);
 const BLACK_FULL: Color = Color::new(0.0, 0.0, 0.0, 0.7);
 const TRANSPARENT: Color = Color::new(0.0, 0.0, 0.0, 0.0);
-
-const STYLE: Style = Style {
-    bg_color: InteractionStyle {
-        at_rest: LIGHTGRAY,
-        hovered: WHITE,
-        pressed: DARKGRAY,
-    },
-    text_color: InteractionStyle {
-        at_rest: DARKGRAY,
-        hovered: BLACK,
-        pressed: LIGHTGRAY,
-    },
-    border_color: InteractionStyle {
-        at_rest: DARKGRAY,
-        hovered: BLACK,
-        pressed: LIGHTGRAY,
-    },
-};
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 enum Team {
@@ -126,14 +106,6 @@ impl Counter {
     }
 }
 
-fn new_button(text: &str, position: Anchor, font_size: f32) -> Button {
-    Button::new_from_text_rect_generic(
-        TextRect::new(text, position, font_size),
-        render_button_flat,
-        Box::new(InputMacroquad),
-    )
-}
-
 fn from_below(other: Rect, x_diff: f32, y_diff: f32) -> Anchor {
     Anchor::top_left(other.x + x_diff, other.y + other.h + y_diff)
 }
@@ -206,6 +178,12 @@ async fn try_main() -> Result<(), AnyError> {
             let (from_client_, to_client_) = serve();
             from_client = Some(from_client_);
             to_client = Some(to_client_);
+            let should_continue =
+                server_waiting_scene(from_client.as_mut().unwrap(), to_client.as_mut().unwrap())
+                    .await;
+            if !should_continue {
+                return Ok(());
+            }
         }
         Player::Client => {
             let (from_server_, to_server_) = connect();
@@ -278,6 +256,7 @@ async fn try_main() -> Result<(), AnyError> {
                         Command::StopStoneHover => {
                             remote_mouse = None;
                         }
+                        Command::Connected => unreachable!(),
                     }
                 }
                 if let Some(tile) = remote_mouse.as_ref() {
