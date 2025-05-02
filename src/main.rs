@@ -275,6 +275,9 @@ async fn try_main() -> Result<(), AnyError> {
                         Command::StoneHover { x, y } => {
                             remote_mouse = Some(IVec2::new(x, y));
                         }
+                        Command::StopStoneHover => {
+                            remote_mouse = None;
+                        }
                     }
                 }
                 if let Some(tile) = remote_mouse.as_ref() {
@@ -326,7 +329,11 @@ async fn try_main() -> Result<(), AnyError> {
                         }
                     }
                 } else {
-                    previous_mouse_tile = None;
+                    if previous_mouse_tile.is_some() {
+                        previous_mouse_tile = None;
+                        let command = Command::StopStoneHover;
+                        to_server.as_mut().unwrap().send(command)?;
+                    }
                 }
             }
         }

@@ -9,6 +9,7 @@ use std::time::Duration;
 #[derive(SerBin, DeBin, Debug)]
 pub enum Command {
     StoneHover { x: i32, y: i32 },
+    StopStoneHover,
 }
 
 #[must_use]
