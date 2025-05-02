@@ -2,10 +2,12 @@
 name = "orthomagnet"
 version = "0.1.0"
 edition = "2021"
+default-run = "orthomagnet"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 macroquad = "=0.3.24"
-juquad = { git = "https://github.com/jmmut/juquad.git", tag = "0.6.0" }
+juquad = { git = "https://github.com/jmmut/juquad.git", tag = "0.7.0" }
+nanoserde = {version = "0.2.1", default-features = false, features = ["std", "binary"] }
 

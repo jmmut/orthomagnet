@@ -1,9 +1,16 @@
+mod menu;
+mod remote_player;
+
+use crate::menu::{menu_scene, Player};
+use crate::remote_player::{connect, serve, Command};
 use juquad::draw::{draw_rect, draw_rect_lines};
 use juquad::input::input_macroquad::InputMacroquad;
 use juquad::widgets::anchor::Anchor;
 use juquad::widgets::button::{Button, Interaction, InteractionStyle, Style};
 use juquad::widgets::text::TextRect;
 use macroquad::prelude::*;
+use orthomagnet::{choose_font_size, render_button_flat, AnyError};
+use std::sync::mpsc::{Receiver, Sender};
 
 const DEFAULT_WINDOW_WIDTH: i32 = 450;
 const DEFAULT_WINDOW_HEIGHT: i32 = 800;
@@ -37,19 +44,6 @@ const STYLE: Style = Style {
         pressed: LIGHTGRAY,
     },
 };
-
-fn choose_font_size(width: f32, height: f32) -> f32 {
-    const FONT_SIZE: f32 = 16.0;
-    let min_side = height.min(width * 16.0 / 9.0);
-    FONT_SIZE
-        * if min_side < 1200.0 {
-            1.0
-        } else if min_side < 1800.0 {
-            1.5
-        } else {
-            2.0
-        }
-}
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 enum Team {
@@ -135,33 +129,11 @@ impl Counter {
 fn new_button(text: &str, position: Anchor, font_size: f32) -> Button {
     Button::new_from_text_rect_generic(
         TextRect::new(text, position, font_size),
-        render_button,
+        render_button_flat,
         Box::new(InputMacroquad),
     )
 }
-fn render_button(interaction: Interaction, text_rect: &TextRect, style: &Style) {
-    let (bg_color, text_color, border_color) = match interaction {
-        Interaction::Clicked | Interaction::Pressing => (
-            style.bg_color.pressed,
-            style.text_color.pressed,
-            style.border_color.pressed,
-        ),
-        Interaction::Hovered => (
-            style.bg_color.hovered,
-            style.text_color.hovered,
-            style.border_color.hovered,
-        ),
-        Interaction::None => (
-            style.bg_color.at_rest,
-            style.text_color.at_rest,
-            style.border_color.at_rest,
-        ),
-    };
-    let rect = text_rect.rect;
-    draw_rect(rect, bg_color);
-    draw_rect_lines(rect, 2.0, border_color);
-    text_rect.render_text(text_color);
-}
+
 fn from_below(other: Rect, x_diff: f32, y_diff: f32) -> Anchor {
     Anchor::top_left(other.x + x_diff, other.y + other.h + y_diff)
 }
@@ -206,6 +178,14 @@ impl Buttons {
 
 #[macroquad::main(window_conf)]
 async fn main() {
+    if let Err(e) = try_main().await {
+        println!("Server thread error: {}", e);
+    }
+}
+async fn try_main() -> Result<(), AnyError> {
+    let Some(player) = menu_scene().await else {
+        return Ok(());
+    };
     let mut turn = Team::White;
     let mut size_rows = 7;
     let mut size_columns = 5;
@@ -214,6 +194,24 @@ async fn main() {
     let mut prev_sw = screen_width();
     let mut prev_sh = screen_height();
     let mut buttons = Buttons::new(prev_sw, prev_sh, size_rows, size_columns);
+    let mut remote_mouse = None;
+    let mut from_client: Option<Receiver<Command>> = None;
+    let mut to_client: Option<Sender<Command>> = None;
+    let mut from_server: Option<Receiver<Command>> = None;
+    let mut to_server: Option<Sender<Command>> = None;
+    match player {
+        Player::Local => {}
+        Player::Server => {
+            let (from_client_, to_client_) = serve();
+            from_client = Some(from_client_);
+            to_client = Some(to_client_);
+        }
+        Player::Client => {
+            let (from_server_, to_server_) = connect();
+            from_server = Some(from_server_);
+            to_server = Some(to_server_);
+        }
+    }
     loop {
         if screen_height() != prev_sh || screen_width() != prev_sw {
             prev_sw = screen_width();
@@ -249,19 +247,71 @@ async fn main() {
             sh * BOARD_HEIGHT_COEF,
         );
         draw_board_lines(board_rect, size_rows, size_columns);
-        if let Some(tile) = get_tile(
-            board_rect,
-            (size_rows, size_columns),
-            Vec2::from(mouse_position()),
-        ) {
-            let color = turn.choose(TRANSPARENT, WHITE_HINT, BLACK_HINT);
-            draw_stone(tile, color, board_rect, size_rows, size_columns);
-            if is_mouse_button_released(MouseButton::Left) {
-                board_history.push(board.clone());
-                let previous_turn = turn;
-                try_put_stone(&mut turn, &mut board, tile);
-                if turn == previous_turn {
-                    board_history.pop();
+        match player {
+            Player::Local => {
+                if let Some(tile) = get_tile(
+                    board_rect,
+                    (size_rows, size_columns),
+                    Vec2::from(mouse_position()),
+                ) {
+                    let color = turn.choose(TRANSPARENT, WHITE_HINT, BLACK_HINT);
+                    draw_stone(tile, color, board_rect, size_rows, size_columns);
+                    if is_mouse_button_released(MouseButton::Left) {
+                        board_history.push(board.clone());
+                        let previous_turn = turn;
+                        try_put_stone(&mut turn, &mut board, tile);
+                        if turn == previous_turn {
+                            board_history.pop();
+                        }
+                    }
+                }
+            }
+            Player::Server => {
+                while let Ok(command) = from_client.as_mut().unwrap().try_recv() {
+                    println!("received command from client to main loop {:?}", command);
+                    // TODO: send to client
+                    match command {
+                        Command::StoneHover { x, y } => {
+                            remote_mouse = Some(IVec2::new(x, y));
+                        }
+                    }
+                    if let Some(tile) = remote_mouse {
+                        let color = BLACK_HINT;
+                        draw_stone(tile, color, board_rect, size_rows, size_columns);
+                    }
+                }
+                if let Some(tile) = get_tile(
+                    board_rect,
+                    (size_rows, size_columns),
+                    Vec2::from(mouse_position()),
+                ) {
+                    let color = WHITE_HINT;
+                    draw_stone(tile, color, board_rect, size_rows, size_columns);
+                }
+            }
+            Player::Client => {
+                if let Some(tile) = get_tile(
+                    board_rect,
+                    (size_rows, size_columns),
+                    Vec2::from(mouse_position()),
+                ) {
+                    let command = Command::StoneHover {
+                        x: tile.x,
+                        y: tile.y,
+                    };
+                    println!("sending client command from main loop {:?}", command);
+                    to_server.as_mut().unwrap().send(command)?;
+                    // TODO: receive from server
+                    let color = turn.choose(TRANSPARENT, WHITE_HINT, BLACK_HINT);
+                    draw_stone(tile, color, board_rect, size_rows, size_columns);
+                    if is_mouse_button_released(MouseButton::Left) {
+                        board_history.push(board.clone());
+                        let previous_turn = turn;
+                        try_put_stone(&mut turn, &mut board, tile);
+                        if turn == previous_turn {
+                            board_history.pop();
+                        }
+                    }
                 }
             }
         }
@@ -271,6 +321,7 @@ async fn main() {
         draw_size(&buttons);
         next_frame().await
     }
+    Ok(())
 }
 
 fn maybe_change_size(

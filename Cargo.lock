@@ -169,8 +169,8 @@ dependencies = [
 
 [[package]]
 name = "juquad"
-version = "0.6.0"
-source = "git+https://github.com/jmmut/juquad.git?tag=0.6.0#0c9c4f989a1173c623b1fd3706e0af11594b9b18"
+version = "0.7.0"
+source = "git+https://github.com/jmmut/juquad.git?tag=0.7.0#88bc58c11bb5910c2dd685d4b2d8d64b2c26efe2"
 dependencies = [
  "macroquad",
 ]
@@ -252,6 +252,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "nanoserde"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a36fb3a748a4c9736ed7aeb5f2dfc99665247f1ce306abbddb2bf0ba2ac530a4"
+dependencies = [
+ "nanoserde-derive",
+]
+
+[[package]]
+name = "nanoserde-derive"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a846cbc04412cf509efcd8f3694b114fc700a035fb5a37f21517f9fb019f1ebc"
+
+[[package]]
 name = "ndk-sys"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -296,6 +311,7 @@ version = "0.1.0"
 dependencies = [
  "juquad",
  "macroquad",
+ "nanoserde",
 ]
 
 [[package]]
