@@ -6,9 +6,12 @@ use juquad::widgets::text::TextRect;
 use macroquad::color::{BLACK, DARKGRAY, LIGHTGRAY, WHITE};
 
 pub mod scenes {
+    pub mod game;
     pub mod menu;
     pub mod server_waiting;
 }
+pub mod board;
+pub mod counter;
 pub mod remote_player;
 
 pub type AnyError = Box<dyn std::error::Error>;

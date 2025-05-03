@@ -4,7 +4,7 @@ use juquad::widgets::button::Button;
 use juquad::widgets::button_group::ButtonGroup;
 use macroquad::color::GRAY;
 use macroquad::input::{is_key_pressed, KeyCode};
-use macroquad::prelude::{clear_background, next_frame, screen_height, screen_width, Vec2};
+use macroquad::prelude::{clear_background, next_frame, screen_height, screen_width};
 
 #[derive(Debug)]
 pub enum Player {
@@ -13,16 +13,16 @@ pub enum Player {
     Client,
 }
 
-pub async fn menu_scene() -> Option<Player> {
+pub async fn scene() -> Option<Player> {
     let mut width = screen_width();
     let mut height = screen_height();
     let (mut _font_size, mut buttons) = reset(width, height);
     loop {
         let new_width = screen_width();
         let new_height = screen_height();
-        width = new_width;
-        height = new_height;
         if new_width != width || new_height != height {
+            width = new_width;
+            height = new_height;
             (_font_size, buttons) = reset(width, height);
         }
         if is_key_pressed(KeyCode::Escape) || buttons.exit.interact().is_clicked() {
@@ -50,10 +50,10 @@ fn reset(width: f32, height: f32) -> (f32, Buttons) {
 }
 
 pub struct Buttons {
-    local: Button,
-    connect: Button,
-    serve: Button,
-    exit: Button,
+    pub local: Button,
+    pub connect: Button,
+    pub serve: Button,
+    pub exit: Button,
 }
 impl Buttons {
     pub fn render(&self) {

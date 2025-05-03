@@ -8,10 +8,7 @@ use macroquad::miniquad::date::now;
 use macroquad::prelude::{clear_background, next_frame, screen_height, screen_width, BLACK, GRAY};
 use std::sync::mpsc::{Receiver, Sender};
 
-pub async fn server_waiting_scene(
-    from_client: &mut Receiver<Command>,
-    to_client: &mut Sender<Command>,
-) -> bool {
+pub async fn scene(from_client: &mut Receiver<Command>, _to_client: &mut Sender<Command>) -> bool {
     let text_color = BLACK;
     let mut width = screen_width();
     let mut height = screen_height();
@@ -26,6 +23,7 @@ pub async fn server_waiting_scene(
         }
 
         if let Ok(Command::Connected) = from_client.try_recv() {
+            // TODO: send ack to client?
             return true;
         }
         if is_key_pressed(KeyCode::Escape) || exit.interact().is_clicked() {
