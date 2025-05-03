@@ -1,9 +1,8 @@
 use macroquad::prelude::*;
-use orthomagnet::remote_player::{connect, serve, Command};
+use orthomagnet::remote_player::{connect, serve};
 use orthomagnet::scenes::menu::Player;
 use orthomagnet::scenes::{game, menu, server_waiting};
 use orthomagnet::AnyError;
-use std::sync::mpsc::{Receiver, Sender};
 
 const DEFAULT_WINDOW_WIDTH: i32 = 450;
 const DEFAULT_WINDOW_HEIGHT: i32 = 800;
@@ -15,34 +14,27 @@ async fn main() {
         println!("Server thread error: {}", e);
     }
 }
+
 async fn try_main() -> Result<(), AnyError> {
     let Some(player) = menu::scene().await else {
         return Ok(());
     };
-    let mut from_client: Option<Receiver<Command>> = None;
-    let mut to_client: Option<Sender<Command>> = None;
-    let mut from_server: Option<Receiver<Command>> = None;
-    let mut to_server: Option<Sender<Command>> = None;
-    match player {
-        Player::Local => {}
+    let (from_remote, to_remote) = match player {
+        Player::Local => (None, None),
         Player::Server => {
             let (from_client_, to_client_) = serve();
-            from_client = Some(from_client_);
-            to_client = Some(to_client_);
-            let should_continue =
-                server_waiting::scene(from_client.as_mut().unwrap(), to_client.as_mut().unwrap())
-                    .await;
-            if !should_continue {
+            if !server_waiting::scene(&from_client_, &to_client_).await {
                 return Ok(());
             }
+            (Some(from_client_), Some(to_client_))
         }
         Player::Client => {
             let (from_server_, to_server_) = connect();
-            from_server = Some(from_server_);
-            to_server = Some(to_server_);
+            (Some(from_server_), Some(to_server_))
         }
-    }
-    game::scene(player, from_client, to_client, from_server, to_server).await?; // TODO: can I just pass non-option from/to remote?
+    };
+
+    game::scene(player, from_remote, to_remote).await?; // TODO: can I just pass non-option from/to remote?
     Ok(())
 }
 

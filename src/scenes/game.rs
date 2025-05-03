@@ -27,16 +27,19 @@ const TRANSPARENT: Color = Color::new(0.0, 0.0, 0.0, 0.0);
 
 pub async fn scene(
     player: Player,
-    from_client: Option<Receiver<Command>>,
-    to_client: Option<Sender<Command>>,
-    from_server: Option<Receiver<Command>>,
-    to_server: Option<Sender<Command>>,
+    from_remote: Option<Receiver<Command>>,
+    to_remote: Option<Sender<Command>>,
 ) -> Result<(), AnyError> {
     let mut width = screen_width();
     let mut height = screen_height();
     let mut board = Board::new_default_size();
     let (mut _font_size, mut buttons) = reset(width, height, board.size_rows, board.size_columns);
-
+    let (remote_color, local_color, local_team) = if let Player::Client = player {
+        (WHITE_HINT, BLACK_HINT, Team::Black)
+    } else {
+        // TODO: any way to avoid setting this on Player::Local?
+        (BLACK_HINT, WHITE_HINT, Team::White)
+    };
     let mut remote_mouse = None;
     let mut previous_mouse_tile = None;
     loop {
@@ -82,12 +85,7 @@ pub async fn scene(
                     maybe_put_stone(&mut board, tile);
                 }
             }
-            Player::Server => {
-                let remote_color = BLACK_HINT;
-                let local_color = WHITE_HINT;
-                let local_team = Team::White;
-                let to_remote = to_client.as_ref().unwrap();
-                let from_remote = from_client.as_ref().unwrap();
+            Player::Server | Player::Client => {
                 update_mouses(
                     &mut board,
                     &mut remote_mouse,
@@ -96,26 +94,8 @@ pub async fn scene(
                     remote_color,
                     local_color,
                     local_team,
-                    to_remote,
-                    from_remote,
-                )?;
-            }
-            Player::Client => {
-                let remote_color = WHITE_HINT;
-                let local_color = BLACK_HINT;
-                let local_team = Team::Black;
-                let to_remote = to_server.as_ref().unwrap();
-                let from_remote = from_server.as_ref().unwrap();
-                update_mouses(
-                    &mut board,
-                    &mut remote_mouse,
-                    &mut previous_mouse_tile,
-                    board_rect,
-                    remote_color,
-                    local_color,
-                    local_team,
-                    to_remote,
-                    from_remote,
+                    to_remote.as_ref().unwrap(),
+                    from_remote.as_ref().unwrap(),
                 )?;
             }
         }

@@ -8,7 +8,7 @@ use macroquad::miniquad::date::now;
 use macroquad::prelude::{clear_background, next_frame, screen_height, screen_width, BLACK, GRAY};
 use std::sync::mpsc::{Receiver, Sender};
 
-pub async fn scene(from_client: &mut Receiver<Command>, _to_client: &mut Sender<Command>) -> bool {
+pub async fn scene(from_client: &Receiver<Command>, _to_client: &Sender<Command>) -> bool {
     let text_color = BLACK;
     let mut width = screen_width();
     let mut height = screen_height();
