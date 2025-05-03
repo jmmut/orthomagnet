@@ -2,7 +2,7 @@ use macroquad::prelude::*;
 use orthomagnet::remote_player::{connect, serve};
 use orthomagnet::scenes::menu::Player;
 use orthomagnet::scenes::{game, menu, server_waiting};
-use orthomagnet::AnyError;
+use orthomagnet::{AnyError, FONT, FONT_BYTES};
 
 const DEFAULT_WINDOW_WIDTH: i32 = 450;
 const DEFAULT_WINDOW_HEIGHT: i32 = 800;
@@ -16,6 +16,8 @@ async fn main() {
 }
 
 async fn try_main() -> Result<(), AnyError> {
+    setup_font()?;
+
     let Some(player) = menu::scene().await else {
         return Ok(());
     };
@@ -46,4 +48,12 @@ fn window_conf() -> Conf {
         high_dpi: true,
         ..Default::default()
     }
+}
+
+fn setup_font() -> Result<(), AnyError> {
+    let font = load_ttf_font_from_bytes(FONT_BYTES)?;
+    unsafe {
+        FONT = Some(font);
+    };
+    Ok(())
 }

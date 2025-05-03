@@ -2,9 +2,10 @@ use crate::board::{Board, Team};
 use crate::counter::Counter;
 use crate::remote_player::Command;
 use crate::scenes::menu::Player;
-use crate::{choose_font_size, new_button, AnyError, STYLE};
+use crate::{choose_font_size, new_button_alt_font, AnyError, STYLE};
 use juquad::widgets::anchor::Anchor;
 use juquad::widgets::button::Button;
+use juquad::widgets::text::TextRect;
 use macroquad::color::{Color, BLACK, DARKGRAY, WHITE};
 use macroquad::input::{is_mouse_button_released, mouse_position, MouseButton};
 use macroquad::math::{IVec2, Rect, Vec2};
@@ -17,7 +18,7 @@ use std::sync::mpsc::{Receiver, Sender};
 const BOARD_TOP_COEF: f32 = 0.12;
 const BOARD_LEFT_COEF: f32 = 0.15;
 const BOARD_WIDTH_COEF: f32 = 1.0 - 2.0 * BOARD_LEFT_COEF;
-const BOARD_HEIGHT_COEF: f32 = 0.6;
+const BOARD_HEIGHT_COEF: f32 = 0.58;
 
 const WHITE_HINT: Color = Color::new(1.0, 1.0, 1.0, 0.3);
 const BLACK_HINT: Color = Color::new(0.0, 0.0, 0.0, 0.3);
@@ -42,6 +43,8 @@ pub async fn scene(
     };
     let mut remote_mouse = None;
     let mut previous_mouse_tile = None;
+    clear_background(GRAY);
+    next_frame().await; // ignore last click
     loop {
         let new_width = screen_width();
         let new_height = screen_height();
@@ -133,27 +136,24 @@ pub struct Buttons {
 
 impl Buttons {
     pub fn new(screen_width: f32, screen_height: f32, row_count: i32, column_count: i32) -> Self {
-        let font_size = choose_font_size(screen_width, screen_height);
+        let mut font_size = choose_font_size(screen_width, screen_height);
+        let font_size_coef = 1.2;
+        font_size *= font_size_coef;
         let left_pad = 16.0;
         let counter_inner_pad = 0.0;
         let left = (BOARD_LEFT_COEF * screen_width).round();
         let bottom = (screen_height * (1.0 - BOARD_TOP_COEF)
             + score_font_size(screen_width, screen_height))
         .round();
-        let undo = new_button("Undo", Anchor::bottom_left(left, bottom), font_size * 1.5);
+        let undo = new_button_alt_font("Undo", Anchor::bottom_left(left, bottom), font_size);
         let restart_anchor = Anchor::bottom_left(undo.rect().x, undo.rect().y - undo.rect().h);
-        let restart = new_button("Restart", restart_anchor, font_size * 1.5);
+        let restart = new_button_alt_font("Restart", restart_anchor, font_size);
 
         let anchor_columns =
             Anchor::bottom_right(((1.0 - BOARD_LEFT_COEF) * screen_width).round(), bottom);
-        let columns = Counter::new(
-            column_count,
-            anchor_columns,
-            counter_inner_pad,
-            font_size * 1.5,
-        );
-        let anchor_rows = Anchor::top_right(columns.rect.x - left_pad * 0.5, columns.rect.y);
-        let rows = Counter::new(row_count, anchor_rows, counter_inner_pad, font_size * 1.5);
+        let columns = Counter::new(column_count, anchor_columns, counter_inner_pad, font_size);
+        let anchor_rows = Anchor::top_right(columns.rect().x - left_pad * 0.5, columns.rect().y);
+        let rows = Counter::new(row_count, anchor_rows, counter_inner_pad, font_size);
         Self {
             restart,
             undo,
@@ -392,7 +392,19 @@ fn score_font_size(screen_w: f32, screen_h: f32) -> f32 {
 
 fn draw_instructions(buttons: &Buttons) {
     buttons.restart.render(&STYLE);
+    // draw_rect_lines(text_border(&buttons.restart.text_rect), 2.0, macroquad::prelude::RED);
     buttons.undo.render(&STYLE);
+    // draw_rect_lines(text_border(&buttons.undo.text_rect), 2.0, macroquad::prelude::RED);
+}
+
+#[allow(unused)]
+fn text_border(rect: &TextRect) -> Rect {
+    Rect::new(
+        (rect.rect.x + rect.pad.x).round(),
+        (rect.rect.y + rect.pad.y).round(),
+        rect.text_width.round(),
+        rect.text_height.round(),
+    )
 }
 
 fn draw_size(buttons: &Buttons) {

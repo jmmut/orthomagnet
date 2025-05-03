@@ -7,6 +7,7 @@ use std::thread;
 use std::time::Duration;
 
 pub const PORT: u16 = 31415;
+pub const IP: &str = "127.0.0.1";
 
 #[derive(SerBin, DeBin, Debug)]
 pub enum Command {
@@ -30,7 +31,7 @@ fn try_server_thread(to_local: Sender<Command>, from_local: Receiver<Command>) {
 }
 
 fn server_thread(to_local: Sender<Command>, from_local: Receiver<Command>) -> Result<(), AnyError> {
-    let listener = TcpListener::bind(&format!("127.0.0.1:{}", PORT)).unwrap();
+    let listener = TcpListener::bind((IP, PORT)).unwrap();
     println!("Server listening on port {}", PORT);
     loop {
         let (stream, _socket_addr) = listener.accept()?;
@@ -58,7 +59,7 @@ fn connect_thread(
     to_local: &Sender<Command>,
     from_local: &Receiver<Command>,
 ) -> Result<(), AnyError> {
-    let stream = TcpStream::connect(&format!("77.225.240.187:{}", PORT))?;
+    let stream = TcpStream::connect((IP, PORT))?;
     handle_stream(stream, to_local, from_local, "server")
 }
 

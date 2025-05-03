@@ -2,8 +2,9 @@ use juquad::draw::{draw_rect, draw_rect_lines};
 use juquad::input::input_macroquad::InputMacroquad;
 use juquad::widgets::anchor::Anchor;
 use juquad::widgets::button::{Button, Interaction, InteractionStyle, Style};
-use juquad::widgets::text::TextRect;
+use juquad::widgets::text::{draw_text, TextRect};
 use macroquad::color::{BLACK, DARKGRAY, LIGHTGRAY, WHITE};
+use macroquad::prelude::{measure_text, Font};
 
 pub mod scenes {
     pub mod game;
@@ -15,6 +16,9 @@ pub mod counter;
 pub mod remote_player;
 
 pub type AnyError = Box<dyn std::error::Error>;
+
+pub const FONT_BYTES: &[u8] = include_bytes!("../assets/Saira-Regular.ttf");
+pub static mut FONT: Option<Font> = None;
 
 pub const STYLE: Style = Style {
     bg_color: InteractionStyle {
@@ -48,10 +52,27 @@ pub fn choose_font_size(width: f32, height: f32) -> f32 {
 }
 
 pub fn new_button(text: &str, position: Anchor, font_size: f32) -> Button {
-    Button::new_from_text_rect_generic(
-        TextRect::new(text, position, font_size),
-        render_button_flat,
-        Box::new(InputMacroquad),
+    let text_rect = TextRect::new(text, position, font_size);
+    new_button_from_text_rect(text_rect)
+}
+
+pub fn new_button_alt_font(text: &str, position: Anchor, font_size: f32) -> Button {
+    let text_rect = new_text_alt_font(text, position, font_size);
+    // text_rect.pad.y = font_size * 0.6;
+    new_button_from_text_rect(text_rect)
+}
+
+pub fn new_button_from_text_rect(text_rect: TextRect) -> Button {
+    Button::new_from_text_rect_generic(text_rect, render_button_flat, Box::new(InputMacroquad))
+}
+pub fn new_text_alt_font(text: &str, position: Anchor, font_size: f32) -> TextRect {
+    TextRect::new_generic(
+        text,
+        position,
+        font_size,
+        unsafe { FONT },
+        measure_text,
+        draw_text,
     )
 }
 

@@ -1,4 +1,4 @@
-use crate::{choose_font_size, render_button_flat, STYLE};
+use crate::{choose_font_size, render_button_flat, FONT, STYLE};
 use juquad::widgets::anchor::Anchor;
 use juquad::widgets::button::Button;
 use juquad::widgets::button_group::ButtonGroup;
@@ -66,9 +66,9 @@ impl Buttons {
 
 fn create_button_group(font_size: f32, width: f32, height: f32) -> Buttons {
     let mut button_group =
-        ButtonGroup::new(font_size, Anchor::top_center(width * 0.5, height * 0.25));
+        ButtonGroup::new_with_font(font_size, unsafe{FONT}, Anchor::top_center(width * 0.5, height * 0.25));
     button_group.render = render_button_flat;
     let buttons: Buttons =
-        button_group.create_generic(["local game", "connect to server", "serve game", "exit"]);
+        button_group.create_generic(["Local game", "Connect to server", "Serve game", "Exit"]);
     buttons
 }
