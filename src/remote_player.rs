@@ -6,6 +6,8 @@ use std::sync::mpsc::{Receiver, Sender};
 use std::thread;
 use std::time::Duration;
 
+pub const PORT: u16 = 31415;
+
 #[derive(SerBin, DeBin, Debug)]
 pub enum Command {
     StoneHover { x: i32, y: i32 },
@@ -28,8 +30,8 @@ fn try_server_thread(to_local: Sender<Command>, from_local: Receiver<Command>) {
 }
 
 fn server_thread(to_local: Sender<Command>, from_local: Receiver<Command>) -> Result<(), AnyError> {
-    let listener = TcpListener::bind("127.0.0.1:31415").unwrap();
-    println!("Server listening on port 31415");
+    let listener = TcpListener::bind(&format!("127.0.0.1:{}", PORT)).unwrap();
+    println!("Server listening on port {}", PORT);
     loop {
         let (stream, _socket_addr) = listener.accept()?;
         to_local.send(Command::Connected)?;
@@ -56,7 +58,7 @@ fn connect_thread(
     to_local: &Sender<Command>,
     from_local: &Receiver<Command>,
 ) -> Result<(), AnyError> {
-    let stream = TcpStream::connect("127.0.0.1:31415")?;
+    let stream = TcpStream::connect(&format!("77.225.240.187:{}", PORT))?;
     handle_stream(stream, to_local, from_local, "server")
 }
 
