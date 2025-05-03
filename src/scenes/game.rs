@@ -54,7 +54,7 @@ pub async fn scene(
             (_font_size, buttons) = reset(width, height, board.size_rows, board.size_columns);
         }
         if is_key_pressed(KeyCode::Escape) {
-            return Ok(());
+            break;
         }
         if is_key_pressed(KeyCode::R) || buttons.restart.interact().is_clicked() {
             board.reset();
@@ -108,6 +108,7 @@ pub async fn scene(
         draw_size(&buttons);
         next_frame().await
     }
+     Ok(())
 }
 
 fn maybe_put_stone(board: &mut Board, tile: IVec2) {

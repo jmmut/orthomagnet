@@ -18,25 +18,30 @@ async fn main() {
 async fn try_main() -> Result<(), AnyError> {
     setup_font()?;
 
-    let Some(player) = menu::scene().await else {
-        return Ok(());
-    };
-    let (from_remote, to_remote) = match player {
-        Player::Local => (None, None),
-        Player::Server => {
-            let (from_client_, to_client_) = serve();
-            if !server_waiting::scene(&from_client_, &to_client_).await {
-                return Ok(());
+    let enable_networking = false;
+    if !enable_networking {
+        game::scene(Player::Local, None, None).await?;
+    } else {
+        let Some(player) = menu::scene().await else {
+            return Ok(());
+        };
+        let (from_remote, to_remote) = match player {
+            Player::Local => (None, None),
+            Player::Server => {
+                let (from_client_, to_client_) = serve();
+                if !server_waiting::scene(&from_client_, &to_client_).await {
+                    return Ok(());
+                }
+                (Some(from_client_), Some(to_client_))
             }
-            (Some(from_client_), Some(to_client_))
-        }
-        Player::Client => {
-            let (from_server_, to_server_) = connect();
-            (Some(from_server_), Some(to_server_))
-        }
-    };
+            Player::Client => {
+                let (from_server_, to_server_) = connect();
+                (Some(from_server_), Some(to_server_))
+            }
+        };
 
-    game::scene(player, from_remote, to_remote).await?; // TODO: can I just pass non-option from/to remote?
+        game::scene(player, from_remote, to_remote).await?; // TODO: can I just pass non-option from/to remote?
+    }
     Ok(())
 }
 
