@@ -246,74 +246,48 @@ async fn try_main() -> Result<(), AnyError> {
                 }
             }
             Player::Server => {
-                while let Ok(command) = from_client.as_mut().unwrap().try_recv() {
-                    println!("received command from client to main loop {:?}", command);
-                    // TODO: send to client
-                    match command {
-                        Command::StoneHover { x, y } => {
-                            remote_mouse = Some(IVec2::new(x, y));
-                        }
-                        Command::StopStoneHover => {
-                            remote_mouse = None;
-                        }
-                        Command::Connected => unreachable!(),
-                    }
-                }
-                if let Some(tile) = remote_mouse.as_ref() {
-                    let color = BLACK_HINT;
-                    draw_stone(*tile, color, board_rect, size_rows, size_columns);
-                }
-                if let Some(tile) = get_tile(
+                let remote_color = BLACK_HINT;
+                let local_color = WHITE_HINT;
+                let local_team = Team::White;
+                let to_remote = to_client.as_ref().unwrap();
+                let from_remote = from_client.as_mut().unwrap();
+                update_mouses(
+                    &mut turn,
+                    size_rows,
+                    size_columns,
+                    &mut board,
+                    &mut board_history,
+                    &mut remote_mouse,
+                    &mut previous_mouse_tile,
                     board_rect,
-                    (size_rows, size_columns),
-                    Vec2::from(mouse_position()),
-                ) {
-                    let color = WHITE_HINT;
-                    draw_stone(tile, color, board_rect, size_rows, size_columns);
-                }
+                    remote_color,
+                    local_color,
+                    local_team,
+                    to_remote,
+                    from_remote,
+                )?;
             }
             Player::Client => {
-                if let Some(tile) = get_tile(
+                let remote_color = WHITE_HINT;
+                let local_color = BLACK_HINT;
+                let local_team = Team::Black;
+                let to_remote = to_server.as_ref().unwrap();
+                let from_remote = from_server.as_mut().unwrap();
+                update_mouses(
+                    &mut turn,
+                    size_rows,
+                    size_columns,
+                    &mut board,
+                    &mut board_history,
+                    &mut remote_mouse,
+                    &mut previous_mouse_tile,
                     board_rect,
-                    (size_rows, size_columns),
-                    Vec2::from(mouse_position()),
-                ) {
-                    let send = if let Some(previous_tile) = previous_mouse_tile {
-                        if tile != previous_tile {
-                            true
-                        } else {
-                            false
-                        }
-                    } else {
-                        true
-                    };
-                    previous_mouse_tile = Some(tile);
-                    if send {
-                        let command = Command::StoneHover {
-                            x: tile.x,
-                            y: tile.y,
-                        };
-                        println!("sending client command from main loop {:?}", command);
-                        to_server.as_mut().unwrap().send(command)?;
-                    }
-                    // TODO: receive from server
-                    let color = turn.choose(TRANSPARENT, WHITE_HINT, BLACK_HINT);
-                    draw_stone(tile, color, board_rect, size_rows, size_columns);
-                    if is_mouse_button_released(MouseButton::Left) {
-                        board_history.push(board.clone());
-                        let previous_turn = turn;
-                        try_put_stone(&mut turn, &mut board, tile);
-                        if turn == previous_turn {
-                            board_history.pop();
-                        }
-                    }
-                } else {
-                    if previous_mouse_tile.is_some() {
-                        previous_mouse_tile = None;
-                        let command = Command::StopStoneHover;
-                        to_server.as_mut().unwrap().send(command)?;
-                    }
-                }
+                    remote_color,
+                    local_color,
+                    local_team,
+                    to_remote,
+                    from_remote,
+                )?;
             }
         }
         draw_stones(&board, board_rect, size_rows, size_columns);
@@ -323,6 +297,109 @@ async fn try_main() -> Result<(), AnyError> {
         next_frame().await
     }
     Ok(())
+}
+
+fn update_mouses(
+    mut turn: &mut Team,
+    size_rows: i32,
+    size_columns: i32,
+    mut board: &mut Vec<Vec<Team>>,
+    mut board_history: &mut Vec<Vec<Vec<Team>>>,
+    mut remote_mouse: &mut Option<IVec2>,
+    mut previous_mouse_tile: &mut Option<IVec2>,
+    board_rect: Rect,
+    remote_color: Color,
+    local_color: Color,
+    local_team: Team,
+    to_remote: &Sender<Command>,
+    from_remote: &mut Receiver<Command>,
+) -> Result<(), AnyError> {
+    update_remote_mouse(&mut remote_mouse, from_remote);
+    if let Some(tile) = remote_mouse.as_ref() {
+        draw_stone(*tile, remote_color, board_rect, size_rows, size_columns);
+    }
+    update_local_mouse(
+        &mut turn,
+        local_team,
+        size_rows,
+        size_columns,
+        &mut board,
+        &mut board_history,
+        &mut previous_mouse_tile,
+        to_remote,
+        board_rect,
+        local_color,
+    )?;
+    Ok(())
+}
+
+fn update_local_mouse(
+    turn: &mut Team,
+    local_team: Team,
+    size_rows: i32,
+    size_columns: i32,
+    board: &mut Vec<Vec<Team>>,
+    board_history: &mut Vec<Vec<Vec<Team>>>,
+    previous_mouse_tile: &mut Option<IVec2>,
+    to_remote: &Sender<Command>,
+    board_rect: Rect,
+    local_color: Color,
+) -> Result<(), AnyError> {
+    if let Some(tile) = get_tile(
+        board_rect,
+        (size_rows, size_columns),
+        Vec2::from(mouse_position()),
+    ) {
+        // let send = if let Some(previous_tile) = previous_mouse_tile {
+        //     if tile != *previous_tile {
+        //         true
+        //     } else {
+        //         false
+        //     }
+        // } else {
+        //     true
+        // };
+        let send = Some(tile) != *previous_mouse_tile;
+        if send {
+            *previous_mouse_tile = Some(tile);
+            let command = Command::StoneHover {
+                x: tile.x,
+                y: tile.y,
+            };
+            to_remote.send(command)?;
+        }
+        draw_stone(tile, local_color, board_rect, size_rows, size_columns);
+        if *turn == local_team {
+            if is_mouse_button_released(MouseButton::Left) {
+                board_history.push(board.clone());
+                let previous_turn = *turn;
+                try_put_stone(turn, board, tile);
+                if *turn == previous_turn {
+                    board_history.pop();
+                }
+            }
+        }
+    } else {
+        if previous_mouse_tile.is_some() {
+            *previous_mouse_tile = None;
+            to_remote.send(Command::StopStoneHover)?;
+        }
+    }
+    Ok(())
+}
+
+fn update_remote_mouse(remote_mouse: &mut Option<IVec2>, from_remote: &mut Receiver<Command>) {
+    while let Ok(command) = from_remote.try_recv() {
+        match command {
+            Command::StoneHover { x, y } => {
+                *remote_mouse = Some(IVec2::new(x, y));
+            }
+            Command::StopStoneHover => {
+                *remote_mouse = None;
+            }
+            Command::Connected => unreachable!(),
+        }
+    }
 }
 
 fn maybe_change_size(
