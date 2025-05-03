@@ -300,13 +300,13 @@ async fn try_main() -> Result<(), AnyError> {
 }
 
 fn update_mouses(
-    mut turn: &mut Team,
+    turn: &mut Team,
     size_rows: i32,
     size_columns: i32,
-    mut board: &mut Vec<Vec<Team>>,
-    mut board_history: &mut Vec<Vec<Vec<Team>>>,
-    mut remote_mouse: &mut Option<IVec2>,
-    mut previous_mouse_tile: &mut Option<IVec2>,
+    board: &mut Vec<Vec<Team>>,
+    board_history: &mut Vec<Vec<Vec<Team>>>,
+    remote_mouse: &mut Option<IVec2>,
+    previous_mouse_tile: &mut Option<IVec2>,
     board_rect: Rect,
     remote_color: Color,
     local_color: Color,
@@ -314,77 +314,21 @@ fn update_mouses(
     to_remote: &Sender<Command>,
     from_remote: &mut Receiver<Command>,
 ) -> Result<(), AnyError> {
-    update_remote_mouse(&mut remote_mouse, from_remote);
+    update_remote_mouse(remote_mouse, from_remote);
     if let Some(tile) = remote_mouse.as_ref() {
         draw_stone(*tile, remote_color, board_rect, size_rows, size_columns);
     }
-    update_local_mouse(
-        &mut turn,
+    let new_tile_opt = update_local_mouse(
+        turn,
         local_team,
         size_rows,
         size_columns,
-        &mut board,
-        &mut board_history,
-        &mut previous_mouse_tile,
-        to_remote,
+        board,
+        board_history,
         board_rect,
         local_color,
-    )?;
-    Ok(())
-}
-
-fn update_local_mouse(
-    turn: &mut Team,
-    local_team: Team,
-    size_rows: i32,
-    size_columns: i32,
-    board: &mut Vec<Vec<Team>>,
-    board_history: &mut Vec<Vec<Vec<Team>>>,
-    previous_mouse_tile: &mut Option<IVec2>,
-    to_remote: &Sender<Command>,
-    board_rect: Rect,
-    local_color: Color,
-) -> Result<(), AnyError> {
-    if let Some(tile) = get_tile(
-        board_rect,
-        (size_rows, size_columns),
-        Vec2::from(mouse_position()),
-    ) {
-        // let send = if let Some(previous_tile) = previous_mouse_tile {
-        //     if tile != *previous_tile {
-        //         true
-        //     } else {
-        //         false
-        //     }
-        // } else {
-        //     true
-        // };
-        let send = Some(tile) != *previous_mouse_tile;
-        if send {
-            *previous_mouse_tile = Some(tile);
-            let command = Command::StoneHover {
-                x: tile.x,
-                y: tile.y,
-            };
-            to_remote.send(command)?;
-        }
-        draw_stone(tile, local_color, board_rect, size_rows, size_columns);
-        if *turn == local_team {
-            if is_mouse_button_released(MouseButton::Left) {
-                board_history.push(board.clone());
-                let previous_turn = *turn;
-                try_put_stone(turn, board, tile);
-                if *turn == previous_turn {
-                    board_history.pop();
-                }
-            }
-        }
-    } else {
-        if previous_mouse_tile.is_some() {
-            *previous_mouse_tile = None;
-            to_remote.send(Command::StopStoneHover)?;
-        }
-    }
+    );
+    send_local_mouse_update(previous_mouse_tile, to_remote, new_tile_opt)?;
     Ok(())
 }
 
@@ -400,6 +344,53 @@ fn update_remote_mouse(remote_mouse: &mut Option<IVec2>, from_remote: &mut Recei
             Command::Connected => unreachable!(),
         }
     }
+}
+
+fn update_local_mouse(
+    turn: &mut Team,
+    local_team: Team,
+    size_rows: i32,
+    size_columns: i32,
+    board: &mut Vec<Vec<Team>>,
+    board_history: &mut Vec<Vec<Vec<Team>>>,
+    board_rect: Rect,
+    local_color: Color,
+) -> Option<IVec2> {
+    let new_tile = get_tile(
+        board_rect,
+        (size_rows, size_columns),
+        Vec2::from(mouse_position()),
+    );
+    if let Some(tile) = new_tile {
+        draw_stone(tile, local_color, board_rect, size_rows, size_columns);
+        if *turn == local_team {
+            if is_mouse_button_released(MouseButton::Left) {
+                board_history.push(board.clone());
+                let previous_turn = *turn;
+                try_put_stone(turn, board, tile);
+                if *turn == previous_turn {
+                    board_history.pop();
+                }
+            }
+        }
+    }
+    new_tile
+}
+
+fn send_local_mouse_update(previous_mouse_tile: &mut Option<IVec2>, to_remote: &Sender<Command>, new_tile_opt: Option<IVec2>) -> Result<(), AnyError> {
+    if new_tile_opt != *previous_mouse_tile {
+        *previous_mouse_tile = new_tile_opt;
+        let command = if let Some(new_tile) = new_tile_opt {
+            Command::StoneHover {
+                x: new_tile.x,
+                y: new_tile.y,
+            }
+        } else {
+            Command::StopStoneHover
+        };
+        to_remote.send(command)?;
+    }
+    Ok(())
 }
 
 fn maybe_change_size(
