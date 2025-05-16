@@ -1,3 +1,4 @@
+use std::future::Future;
 use macroquad::prelude::*;
 use orthomagnet::remote_player::{connect, serve};
 use orthomagnet::scenes::menu::Player;
@@ -20,28 +21,28 @@ async fn try_main() -> Result<(), AnyError> {
 
     let enable_networking = false;
     if !enable_networking {
-        game::scene(Player::Local, None, None).await?;
+        game::scene(Player::Local, None, None).await
     } else {
         if let Some(player) = menu::scene().await {
-            let (from_remote, to_remote) = match player {
-                Player::Local => (None, None),
+            match player {
+                Player::Local => game::scene(player, None, None).await,
                 Player::Server => {
                     let (from_client_, to_client_) = serve();
-                    if !server_waiting::scene(&from_client_, &to_client_).await {
-                        return Ok(());
+                    if server_waiting::scene(&from_client_, &to_client_).await {
+                        game::scene(player, Some(from_client_), Some(to_client_)).await
+                    } else {
+                        Ok(())
                     }
-                    (Some(from_client_), Some(to_client_))
                 }
                 Player::Client => {
                     let (from_server_, to_server_) = connect();
-                    (Some(from_server_), Some(to_server_))
+                    game::scene(player, Some(from_server_), Some(to_server_)).await
                 }
-            };
-
-            game::scene(player, from_remote, to_remote).await?; // TODO: can I just pass non-option from/to remote?
+            }
+        } else {
+            Ok(())
         }
     }
-    Ok(())
 }
 
 fn window_conf() -> Conf {
