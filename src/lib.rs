@@ -4,10 +4,11 @@ use juquad::widgets::anchor::Anchor;
 use juquad::widgets::button::{Button, Interaction, InteractionStyle, Style};
 use juquad::widgets::text::{draw_text, TextRect};
 use macroquad::color::{BLACK, DARKGRAY, LIGHTGRAY, WHITE};
-use macroquad::prelude::{measure_text, Font};
+use macroquad::prelude::{load_ttf_font_from_bytes, measure_text, Font};
 
 pub mod scenes {
     pub mod game;
+    pub mod loading;
     pub mod menu;
     pub mod server_waiting;
 }
@@ -18,6 +19,7 @@ pub mod remote_player;
 pub type AnyError = Box<dyn std::error::Error>;
 
 pub const FONT_BYTES: &[u8] = include_bytes!("../assets/Saira-Regular.ttf");
+pub const BASE_FONT_SIZE: f32 = 16.0; // prefer using choose_font_size()
 pub static mut FONT: Option<Font> = None;
 
 pub const STYLE: Style = Style {
@@ -39,9 +41,8 @@ pub const STYLE: Style = Style {
 };
 
 pub fn choose_font_size(width: f32, height: f32) -> f32 {
-    const FONT_SIZE: f32 = 16.0;
     let min_side = height.min(width * 16.0 / 9.0);
-    FONT_SIZE
+    BASE_FONT_SIZE
         * if min_side < 1200.0 {
             1.0
         } else if min_side < 1800.0 {
@@ -49,6 +50,14 @@ pub fn choose_font_size(width: f32, height: f32) -> f32 {
         } else {
             2.0
         }
+}
+
+fn setup_font() -> Result<(), AnyError> {
+    let font = load_ttf_font_from_bytes(FONT_BYTES)?;
+    unsafe {
+        FONT = Some(font);
+    };
+    Ok(())
 }
 
 pub fn new_button(text: &str, position: Anchor, font_size: f32) -> Button {

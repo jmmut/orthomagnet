@@ -65,8 +65,11 @@ impl Buttons {
 }
 
 fn create_button_group(font_size: f32, width: f32, height: f32) -> Buttons {
-    let mut button_group =
-        ButtonGroup::new_with_font(font_size, unsafe{FONT}, Anchor::top_center(width * 0.5, height * 0.25));
+    let mut button_group = ButtonGroup::new_with_font(
+        font_size,
+        unsafe { FONT },
+        Anchor::top_center(width * 0.5, height * 0.25),
+    );
     button_group.render = render_button_flat;
     let buttons: Buttons =
         button_group.create_generic(["Local game", "Connect to server", "Serve game", "Exit"]);

@@ -1,17 +1,20 @@
 use crate::board::{Board, Team};
 use crate::counter::Counter;
 use crate::remote_player::Command;
+use crate::scenes::loading::Textures;
 use crate::scenes::menu::Player;
-use crate::{choose_font_size, new_button_alt_font, AnyError, STYLE};
+use crate::{choose_font_size, new_button_alt_font, AnyError, BASE_FONT_SIZE, STYLE};
 use juquad::widgets::anchor::Anchor;
 use juquad::widgets::button::Button;
 use juquad::widgets::text::TextRect;
+use juquad::widgets::texture_button::TextureButton;
 use macroquad::color::{Color, BLACK, DARKGRAY, WHITE};
 use macroquad::input::{is_mouse_button_released, mouse_position, MouseButton};
 use macroquad::math::{IVec2, Rect, Vec2};
 use macroquad::prelude::{
     clear_background, draw_line, draw_rectangle, draw_text, is_key_down, is_key_pressed,
-    is_mouse_button_pressed, measure_text, next_frame, screen_height, screen_width, KeyCode, GRAY,
+    is_mouse_button_pressed, measure_text, next_frame, screen_height, screen_width, KeyCode,
+    Texture2D, GRAY,
 };
 use std::sync::mpsc::{Receiver, Sender};
 
@@ -27,6 +30,7 @@ const BLACK_FULL: Color = Color::new(0.0, 0.0, 0.0, 0.7);
 const TRANSPARENT: Color = Color::new(0.0, 0.0, 0.0, 0.0);
 
 pub async fn scene(
+    textures: Textures,
     player: Player,
     from_remote: Option<Receiver<Command>>,
     to_remote: Option<Sender<Command>>,
@@ -34,7 +38,13 @@ pub async fn scene(
     let mut width = screen_width();
     let mut height = screen_height();
     let mut board = Board::new_default_size();
-    let (mut _font_size, mut buttons) = reset(width, height, board.size_rows, board.size_columns);
+    let (mut _font_size, mut buttons) = reset(
+        width,
+        height,
+        board.size_rows,
+        board.size_columns,
+        &textures,
+    );
     let (remote_color, local_color, local_team) = if let Player::Client = player {
         (WHITE_HINT, BLACK_HINT, Team::Black)
     } else {
@@ -51,7 +61,13 @@ pub async fn scene(
         if new_width != width || new_height != height {
             width = new_width;
             height = new_height;
-            (_font_size, buttons) = reset(width, height, board.size_rows, board.size_columns);
+            (_font_size, buttons) = reset(
+                width,
+                height,
+                board.size_rows,
+                board.size_columns,
+                &textures,
+            );
         }
         if is_key_pressed(KeyCode::Escape) {
             break;
@@ -104,11 +120,11 @@ pub async fn scene(
         }
         draw_stones(&board.board, board_rect, board.size());
         draw_score(board_rect, &board);
-        draw_instructions(&buttons);
+        draw_instructions(&buttons, &textures);
         draw_size(&buttons);
         next_frame().await
     }
-     Ok(())
+    Ok(())
 }
 
 fn maybe_put_stone(board: &mut Board, tile: IVec2) {
@@ -122,22 +138,35 @@ fn maybe_put_stone(board: &mut Board, tile: IVec2) {
     }
 }
 
-fn reset(width: f32, height: f32, row_count: i32, column_count: i32) -> (f32, Buttons) {
+fn reset(
+    width: f32,
+    height: f32,
+    row_count: i32,
+    column_count: i32,
+    textures: &Textures,
+) -> (f32, Buttons) {
     let font_size = choose_font_size(width, height) * 2.0;
-    let buttons = Buttons::new(width, height, row_count, column_count);
+    let buttons = Buttons::new(width, height, row_count, column_count, textures);
     (font_size, buttons)
 }
 
 pub struct Buttons {
-    pub restart: Button,
+    pub restart: TextureButton,
     pub undo: Button,
     pub rows: Counter,
     pub columns: Counter,
 }
 
 impl Buttons {
-    pub fn new(screen_width: f32, screen_height: f32, row_count: i32, column_count: i32) -> Self {
+    pub fn new(
+        screen_width: f32,
+        screen_height: f32,
+        row_count: i32,
+        column_count: i32,
+        textures: &Textures,
+    ) -> Self {
         let mut font_size = choose_font_size(screen_width, screen_height);
+        let texture_size_coef = font_size / BASE_FONT_SIZE;
         let font_size_coef = 1.2;
         font_size *= font_size_coef;
         let left_pad = 16.0;
@@ -148,7 +177,11 @@ impl Buttons {
         .round();
         let undo = new_button_alt_font("Undo", Anchor::bottom_left(left, bottom), font_size);
         let restart_anchor = Anchor::bottom_left(undo.rect().x, undo.rect().y - undo.rect().h);
-        let restart = new_button_alt_font("Restart", restart_anchor, font_size);
+        // let texture_size = Vec2::new(textures.restart.width(), textures.restart.height()) * (font_size / BASE_FONT_SIZE ) * 2.0;
+        let texture_size = Vec2::new(textures.restart.width(), textures.restart.height())
+            * 2.0
+            * texture_size_coef;
+        let restart = TextureButton::new(restart_anchor, texture_size);
 
         let anchor_columns =
             Anchor::bottom_right(((1.0 - BOARD_LEFT_COEF) * screen_width).round(), bottom);
@@ -391,8 +424,8 @@ fn score_font_size(screen_w: f32, screen_h: f32) -> f32 {
     choose_font_size(screen_w, screen_h) * 3.0
 }
 
-fn draw_instructions(buttons: &Buttons) {
-    buttons.restart.render(&STYLE);
+fn draw_instructions(buttons: &Buttons, textures: &Textures) {
+    buttons.restart.render(vec![textures.restart], None);
     // draw_rect_lines(text_border(&buttons.restart.text_rect), 2.0, macroquad::prelude::RED);
     buttons.undo.render(&STYLE);
     // draw_rect_lines(text_border(&buttons.undo.text_rect), 2.0, macroquad::prelude::RED);
