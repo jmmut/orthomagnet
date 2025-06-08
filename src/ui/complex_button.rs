@@ -30,7 +30,7 @@ impl ComplexButton {
         let mut text_anchor = anchor;
         text_anchor.offset(texture_size.x, 0.0);
         let text = new_text_alt_font(text, text_anchor, font_size);
-        let icon_anchor = Anchor::leftwards(text.rect(), Vertical::Center, -10.0);
+        let icon_anchor = Anchor::leftwards(text.rect(), Vertical::Center, -texture_size.x * 0.35);
         let icon_rect = icon_anchor.get_rect(texture_size);
         let rect = anchor.get_rect(text.rect().size() + vec2(icon_rect.w, 0.0));
         Self {
