@@ -5,19 +5,19 @@ use crate::scenes::menu::Player;
 use crate::ui::button_trait::ButtonTrait;
 use crate::ui::complex_button::ComplexButton;
 use crate::ui::counter::Counter;
-use crate::{choose_font_size, new_button_alt_font, AnyError, BASE_FONT_SIZE, STYLE};
+use crate::{choose_font_size, AnyError, BASE_FONT_SIZE, STYLE};
 use juquad::widgets::anchor::Anchor;
-use juquad::widgets::button::Button;
 use juquad::widgets::text::TextRect;
+use juquad::widgets::Widget;
 use macroquad::color::{Color, BLACK, DARKGRAY, WHITE};
 use macroquad::input::{is_mouse_button_released, mouse_position, MouseButton};
 use macroquad::math::{IVec2, Rect, Vec2};
 use macroquad::prelude::{
     clear_background, draw_line, draw_rectangle, draw_text, is_key_down, is_key_pressed,
-    is_mouse_button_pressed, measure_text, next_frame, screen_height, screen_width, KeyCode, GRAY,
+    is_mouse_button_pressed, measure_text, next_frame, screen_height, screen_width, KeyCode,
+    Texture2D, GRAY,
 };
 use std::sync::mpsc::{Receiver, Sender};
-use juquad::widgets::Widget;
 
 const BOARD_TOP_COEF: f32 = 0.12;
 const BOARD_LEFT_COEF: f32 = 0.15;
@@ -180,23 +180,14 @@ impl Buttons {
         let texture_size = Vec2::new(textures.restart.width(), textures.restart.height())
             * 2.0
             * texture_size_coef;
-        let undo_anchor =  Anchor::bottom_left(left, bottom);
-        let undo = ComplexButton::new(
-            undo_anchor,
-            vec![textures.undo],
-            texture_size,
-            "Undo",
-            font_size,
-        );
+        let undo_anchor = Anchor::bottom_left(left, bottom);
+        let new_complex_button = |anchor, texture: Texture2D, text| {
+            ComplexButton::new(anchor, vec![texture], texture_size, text, font_size)
+        };
+        let undo = new_complex_button(undo_anchor, textures.undo, "Undo");
 
         let restart_anchor = Anchor::bottom_left(undo.rect().x, undo.rect().y - undo.rect().h);
-        let restart = ComplexButton::new(
-            restart_anchor,
-            vec![textures.restart],
-            texture_size,
-            "Restart",
-            font_size,
-        );
+        let restart = new_complex_button(restart_anchor, textures.restart, "Restart");
 
         let anchor_columns =
             Anchor::bottom_right(((1.0 - BOARD_LEFT_COEF) * screen_width).round(), bottom);
