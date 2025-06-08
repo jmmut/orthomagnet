@@ -17,6 +17,7 @@ use macroquad::prelude::{
     is_mouse_button_pressed, measure_text, next_frame, screen_height, screen_width, KeyCode, GRAY,
 };
 use std::sync::mpsc::{Receiver, Sender};
+use juquad::widgets::Widget;
 
 const BOARD_TOP_COEF: f32 = 0.12;
 const BOARD_LEFT_COEF: f32 = 0.15;
@@ -152,7 +153,7 @@ fn reset(
 
 pub struct Buttons {
     pub restart: ComplexButton,
-    pub undo: Button,
+    pub undo: ComplexButton,
     pub rows: Counter,
     pub columns: Counter,
 }
@@ -175,12 +176,20 @@ impl Buttons {
         let bottom = (screen_height * (1.0 - BOARD_TOP_COEF)
             + score_font_size(screen_width, screen_height))
         .round();
-        let undo = new_button_alt_font("Undo", Anchor::bottom_left(left, bottom), font_size);
-        let restart_anchor = Anchor::bottom_left(undo.rect().x, undo.rect().y - undo.rect().h);
-        // let texture_size = Vec2::new(textures.restart.width(), textures.restart.height()) * (font_size / BASE_FONT_SIZE ) * 2.0;
+
         let texture_size = Vec2::new(textures.restart.width(), textures.restart.height())
             * 2.0
             * texture_size_coef;
+        let undo_anchor =  Anchor::bottom_left(left, bottom);
+        let undo = ComplexButton::new(
+            undo_anchor,
+            vec![textures.undo],
+            texture_size,
+            "Undo",
+            font_size,
+        );
+
+        let restart_anchor = Anchor::bottom_left(undo.rect().x, undo.rect().y - undo.rect().h);
         let restart = ComplexButton::new(
             restart_anchor,
             vec![textures.restart],

@@ -16,10 +16,14 @@ const LOADING_STYLE: Style = Style {
 };
 pub struct Textures {
     pub restart: Texture2D,
+    pub undo: Texture2D,
 }
 pub async fn scene() -> Result<Textures, AnyError> {
     setup_font()?;
-    let mut loader = TextureLoader::new(&["assets/images/restart.png"]);
+    let mut loader = TextureLoader::new(&[
+        "assets/images/restart.png",
+        "assets/images/undo.png",
+    ]);
 
     let mut width = screen_width();
     let mut height = screen_height();
@@ -31,6 +35,7 @@ pub async fn scene() -> Result<Textures, AnyError> {
             }
             return Ok(Textures {
                 restart: textures[0],
+                undo: textures[1],
             });
         }
         let new_width = screen_width();
