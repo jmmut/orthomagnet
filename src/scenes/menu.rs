@@ -71,7 +71,12 @@ fn create_button_group(font_size: f32, width: f32, height: f32) -> Buttons {
         Anchor::top_center(width * 0.5, height * 0.25),
     );
     button_group.render = render_button_flat;
-    let buttons: Buttons =
-        button_group.create_generic(["Local game", "Connect to server", "Serve game", "Exit"]);
-    buttons
+    let [local, connect, serve, exit] =
+        button_group.create(["Local game", "Connect to server", "Serve game", "Exit"]);
+    Buttons {
+        local,
+        connect,
+        serve,
+        exit,
+    }
 }

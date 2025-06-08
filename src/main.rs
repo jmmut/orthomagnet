@@ -2,7 +2,7 @@ use macroquad::prelude::*;
 use orthomagnet::remote_player::{connect, serve};
 use orthomagnet::scenes::menu::Player;
 use orthomagnet::scenes::{game, loading, menu, server_waiting};
-use orthomagnet::{AnyError, FONT, FONT_BYTES};
+use orthomagnet::AnyError;
 
 const DEFAULT_WINDOW_WIDTH: i32 = 450;
 const DEFAULT_WINDOW_HEIGHT: i32 = 800;

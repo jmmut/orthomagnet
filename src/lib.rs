@@ -3,8 +3,9 @@ use juquad::input::input_macroquad::InputMacroquad;
 use juquad::widgets::anchor::Anchor;
 use juquad::widgets::button::{Button, Interaction, InteractionStyle, Style};
 use juquad::widgets::text::{draw_text, TextRect};
+use juquad::widgets::Widget;
 use macroquad::color::{BLACK, DARKGRAY, LIGHTGRAY, WHITE};
-use macroquad::prelude::{load_ttf_font_from_bytes, measure_text, Font};
+use macroquad::prelude::{load_ttf_font_from_bytes, measure_text, Color, Font, Rect};
 
 pub mod scenes {
     pub mod game;
@@ -12,8 +13,12 @@ pub mod scenes {
     pub mod menu;
     pub mod server_waiting;
 }
+pub mod ui {
+    pub mod button_trait;
+    pub mod complex_button;
+    pub mod counter;
+}
 pub mod board;
-pub mod counter;
 pub mod remote_player;
 
 pub type AnyError = Box<dyn std::error::Error>;
@@ -39,6 +44,11 @@ pub const STYLE: Style = Style {
         pressed: LIGHTGRAY,
     },
 };
+pub struct SingleStyle {
+    bg_color: Color,
+    text_color: Color,
+    border_color: Color,
+}
 
 pub fn choose_font_size(width: f32, height: f32) -> f32 {
     let min_side = height.min(width * 16.0 / 9.0);
@@ -86,6 +96,10 @@ pub fn new_text_alt_font(text: &str, position: Anchor, font_size: f32) -> TextRe
 }
 
 pub fn render_button_flat(interaction: Interaction, text_rect: &TextRect, style: &Style) {
+    let style = render_button_base(interaction, text_rect.rect(), style);
+    text_rect.render_text(style.text_color);
+}
+pub fn render_button_base(interaction: Interaction, rect: Rect, style: &Style) -> SingleStyle {
     let (bg_color, text_color, border_color) = match interaction {
         Interaction::Clicked | Interaction::Pressing => (
             style.bg_color.pressed,
@@ -103,8 +117,16 @@ pub fn render_button_flat(interaction: Interaction, text_rect: &TextRect, style:
             style.border_color.at_rest,
         ),
     };
-    let rect = text_rect.rect;
-    draw_rect(rect, bg_color);
-    draw_rect_lines(rect, 2.0, border_color);
-    text_rect.render_text(text_color);
+    let single_style = SingleStyle {
+        bg_color,
+        text_color,
+        border_color,
+    };
+    draw_rect(rect, single_style.bg_color);
+    // let smaller = Rect::new(rect.x+1.0, rect.y, rect.w - 2.0, rect.h);
+    // draw_rect(smaller, single_style.bg_color);
+    // draw_line(rect.x+1.0, rect.y + 1.0, rect.x+1.0, rect.bottom() - 1.0,  1.0, single_style.bg_color);
+    // draw_line(rect.right(), rect.y + 1.0, rect.right(), rect.bottom() - 1.0,  1.0, single_style.bg_color);
+    draw_rect_lines(rect, 2.0, single_style.border_color);
+    single_style
 }

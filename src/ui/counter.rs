@@ -1,6 +1,6 @@
 use crate::{new_button_from_text_rect, new_text_alt_font, FONT};
 use juquad::draw::draw_rect;
-use juquad::widgets::anchor::Anchor;
+use juquad::widgets::anchor::{Anchor, Horizontal};
 use juquad::widgets::button::{Button, Style};
 use juquad::widgets::button_group::LabelGroup;
 use juquad::widgets::text::TextRect;
@@ -55,7 +55,7 @@ impl Counter {
     pub fn update(&mut self, new_count: i32) {
         self.counter = new_text_alt_font(
             new_count.to_string().as_str(),
-            Anchor::center_below(self.increase.rect(), 0.0, self.vertical_pad),
+            Anchor::below(self.increase.rect(), Horizontal::Center, self.vertical_pad),
             self.counter.font_size,
         )
     }

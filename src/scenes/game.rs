@@ -1,20 +1,20 @@
 use crate::board::{Board, Team};
-use crate::counter::Counter;
 use crate::remote_player::Command;
 use crate::scenes::loading::Textures;
 use crate::scenes::menu::Player;
+use crate::ui::button_trait::ButtonTrait;
+use crate::ui::complex_button::ComplexButton;
+use crate::ui::counter::Counter;
 use crate::{choose_font_size, new_button_alt_font, AnyError, BASE_FONT_SIZE, STYLE};
 use juquad::widgets::anchor::Anchor;
 use juquad::widgets::button::Button;
 use juquad::widgets::text::TextRect;
-use juquad::widgets::texture_button::TextureButton;
 use macroquad::color::{Color, BLACK, DARKGRAY, WHITE};
 use macroquad::input::{is_mouse_button_released, mouse_position, MouseButton};
 use macroquad::math::{IVec2, Rect, Vec2};
 use macroquad::prelude::{
     clear_background, draw_line, draw_rectangle, draw_text, is_key_down, is_key_pressed,
-    is_mouse_button_pressed, measure_text, next_frame, screen_height, screen_width, KeyCode,
-    Texture2D, GRAY,
+    is_mouse_button_pressed, measure_text, next_frame, screen_height, screen_width, KeyCode, GRAY,
 };
 use std::sync::mpsc::{Receiver, Sender};
 
@@ -120,7 +120,7 @@ pub async fn scene(
         }
         draw_stones(&board.board, board_rect, board.size());
         draw_score(board_rect, &board);
-        draw_instructions(&buttons, &textures);
+        draw_instructions(&buttons);
         draw_size(&buttons);
         next_frame().await
     }
@@ -151,7 +151,7 @@ fn reset(
 }
 
 pub struct Buttons {
-    pub restart: TextureButton,
+    pub restart: ComplexButton,
     pub undo: Button,
     pub rows: Counter,
     pub columns: Counter,
@@ -181,7 +181,13 @@ impl Buttons {
         let texture_size = Vec2::new(textures.restart.width(), textures.restart.height())
             * 2.0
             * texture_size_coef;
-        let restart = TextureButton::new(restart_anchor, texture_size);
+        let restart = ComplexButton::new(
+            restart_anchor,
+            vec![textures.restart],
+            texture_size,
+            "Restart",
+            font_size,
+        );
 
         let anchor_columns =
             Anchor::bottom_right(((1.0 - BOARD_LEFT_COEF) * screen_width).round(), bottom);
@@ -424,8 +430,8 @@ fn score_font_size(screen_w: f32, screen_h: f32) -> f32 {
     choose_font_size(screen_w, screen_h) * 3.0
 }
 
-fn draw_instructions(buttons: &Buttons, textures: &Textures) {
-    buttons.restart.render(vec![textures.restart], None);
+fn draw_instructions(buttons: &Buttons) {
+    buttons.restart.render(&STYLE);
     // draw_rect_lines(text_border(&buttons.restart.text_rect), 2.0, macroquad::prelude::RED);
     buttons.undo.render(&STYLE);
     // draw_rect_lines(text_border(&buttons.undo.text_rect), 2.0, macroquad::prelude::RED);
