@@ -20,7 +20,12 @@ pub struct Textures {
 }
 pub async fn scene() -> Result<Textures, AnyError> {
     setup_font()?;
-    let mut loader = TextureLoader::new(&["assets/images/restart.png", "assets/images/undo.png"]);
+    let mut loader = TextureLoader::new(&[
+        "assets/images/restart_shadow.png",
+        "assets/images/undo_shadow.png",
+        // "assets/images/restart.png",
+        // "assets/images/undo.png",
+    ]);
 
     let mut width = screen_width();
     let mut height = screen_height();

@@ -5,7 +5,7 @@ use crate::scenes::menu::Player;
 use crate::ui::button_trait::ButtonTrait;
 use crate::ui::complex_button::ComplexButton;
 use crate::ui::counter::Counter;
-use crate::{choose_font_size, new_button, AnyError, BASE_FONT_SIZE, SHADOWS, STYLE};
+use crate::{choose_font_size, new_button, AnyError, BASE_FONT_SIZE, STYLE};
 use juquad::widgets::anchor::Anchor;
 use juquad::widgets::button::Button;
 use juquad::widgets::text::TextRect;
@@ -87,9 +87,9 @@ pub async fn scene(
         }
         board.maybe_change_size(&mut buttons);
         if buttons.toggle_shadows.interact().is_clicked() {
-            unsafe {
-                SHADOWS = !SHADOWS;
-            }
+            // unsafe {
+            //     SHADOWS = !SHADOWS;
+            // }
         }
         clear_background(GRAY);
 
@@ -445,7 +445,7 @@ fn draw_instructions(buttons: &Buttons) {
     // draw_rect_lines(text_border(&buttons.restart.text_rect), 2.0, macroquad::prelude::RED);
     buttons.undo.render(&STYLE);
     // draw_rect_lines(text_border(&buttons.undo.text_rect), 2.0, macroquad::prelude::RED);
-    buttons.toggle_shadows.render(&STYLE);
+    // buttons.toggle_shadows.render(&STYLE);
 }
 
 #[allow(unused)]

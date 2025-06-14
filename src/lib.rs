@@ -94,7 +94,7 @@ pub fn new_text_alt_font(text: &str, position: Anchor, font_size: f32) -> TextRe
         draw_text_shadow,
     )
 }
-static mut SHADOWS: bool = true;
+static mut SHADOWS: bool = false;
 
 pub fn draw_text_shadow(
     text: &str,

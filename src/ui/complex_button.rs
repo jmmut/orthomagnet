@@ -1,5 +1,5 @@
 use crate::ui::button_trait::{ButtonBase, ButtonTrait};
-use crate::{darken, new_text_alt_font, render_button_base, SHADOWS};
+use crate::{new_text_alt_font, render_button_base};
 use juquad::input::input_macroquad::InputMacroquad;
 use juquad::input::input_trait::InputTrait;
 use juquad::widgets::anchor::{Anchor, Vertical};
@@ -60,18 +60,18 @@ impl ButtonTrait for ComplexButton {
                     ..Default::default()
                 },
             );
-            if unsafe { SHADOWS } || true {
-                draw_texture_ex(
-                    texture,
-                    self.icon_rect.x + 1.0,
-                    self.icon_rect.y + 1.0,
-                    darken(style.text_color),
-                    DrawTextureParams {
-                        dest_size: Some(self.icon_rect.size()),
-                        ..Default::default()
-                    },
-                );
-            }
+            // if unsafe { SHADOWS } || true {
+            //     draw_texture_ex(
+            //         texture,
+            //         self.icon_rect.x + 1.0,
+            //         self.icon_rect.y + 1.0,
+            //         darken(style.text_color),
+            //         DrawTextureParams {
+            //             dest_size: Some(self.icon_rect.size()),
+            //             ..Default::default()
+            //         },
+            //     );
+            // }
         }
         self.text.render_text(style.text_color);
     }
