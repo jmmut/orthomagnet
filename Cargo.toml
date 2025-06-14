@@ -8,7 +8,7 @@ default-run = "orthomagnet"
 
 [dependencies]
 macroquad = "=0.3.24"
-juquad = { git = "https://github.com/jmmut/juquad.git", tag = "0.8.0" }
-#juquad = { path = "../../juquad" }
+#juquad = { git = "https://github.com/jmmut/juquad.git", tag = "0.8.0" }
+juquad = { path = "../../juquad" }
 nanoserde = {version = "0.2.1", default-features = false, features = ["std", "binary"] }
 

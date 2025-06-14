@@ -1,9 +1,9 @@
-use crate::{new_button_from_text_rect, new_text_alt_font, FONT};
+use crate::{draw_text_shadow, new_button_from_text_rect, new_text_alt_font, FONT};
 use juquad::draw::draw_rect;
 use juquad::widgets::anchor::{Anchor, Horizontal};
 use juquad::widgets::button::{Button, Style};
 use juquad::widgets::button_group::LabelGroup;
-use juquad::widgets::text::TextRect;
+use juquad::widgets::text::{draw_text_rect_generic, TextRect};
 use macroquad::prelude::{Rect, DARKGRAY, LIGHTGRAY};
 
 pub struct Counter {
@@ -62,7 +62,9 @@ impl Counter {
     pub fn render(&self, style: &Style) {
         draw_rect(self.rect(), DARKGRAY);
         self.increase.render(style);
-        self.counter.render_text(LIGHTGRAY);
+        let mut num_style = Style::new();
+        num_style.text_color.at_rest = LIGHTGRAY;
+        draw_text_rect_generic(&self.counter, &num_style, draw_text_shadow);
         self.decrease.render(style);
     }
 }

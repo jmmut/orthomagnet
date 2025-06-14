@@ -2,10 +2,10 @@ use juquad::draw::{draw_rect, draw_rect_lines};
 use juquad::input::input_macroquad::InputMacroquad;
 use juquad::widgets::anchor::Anchor;
 use juquad::widgets::button::{Button, Interaction, InteractionStyle, Style};
-use juquad::widgets::text::{draw_text, TextRect};
+use juquad::widgets::text::{draw_text_rect_generic, TextRect};
 use juquad::widgets::Widget;
 use macroquad::color::{BLACK, DARKGRAY, LIGHTGRAY, WHITE};
-use macroquad::prelude::{load_ttf_font_from_bytes, measure_text, Color, Font, Rect};
+use macroquad::prelude::{load_ttf_font_from_bytes, measure_text, Color, Font, Rect, TextParams};
 
 pub mod scenes {
     pub mod game;
@@ -91,13 +91,62 @@ pub fn new_text_alt_font(text: &str, position: Anchor, font_size: f32) -> TextRe
         font_size,
         unsafe { FONT },
         measure_text,
-        draw_text,
+        draw_text_shadow,
     )
+}
+static mut SHADOWS: bool = true;
+
+pub fn draw_text_shadow(
+    text: &str,
+    x: f32,
+    y: f32,
+    font_size: f32,
+    style: &Style,
+    font: Option<Font>,
+) {
+    let color = style.text_color.at_rest;
+    let color_shadow = darken(color);
+    if let Some(font) = font {
+        let mut params = TextParams {
+            font,
+            font_size: font_size as u16,
+            color,
+            ..TextParams::default()
+        };
+        params.color = color_shadow;
+        if unsafe { SHADOWS } {
+            macroquad::text::draw_text_ex(text, x + 1.0, y + 1.0, params);
+        }
+        params.color = color;
+        macroquad::text::draw_text_ex(text, x, y, params);
+    } else {
+        if unsafe { SHADOWS } {
+            macroquad::text::draw_text(text, x + 1.0, y + 1.0, font_size, color_shadow)
+        }
+        macroquad::text::draw_text(text, x, y, font_size, color);
+    }
+}
+pub fn darken(color: Color) -> Color {
+    Color::new(
+        (color.r + 0.2).min(1.0),
+        (color.g + 0.2).min(1.0),
+        (color.b + 0.2).min(1.0),
+        (color.a - 0.5).max(0.0),
+    )
+}
+pub fn invert(color: Color) -> Color {
+    // Color::new(
+    //     1.0 - color.r,
+    //     1.0 - color.g,
+    //     1.0 - color.b,
+    //     color.a,
+    // )
+    Color::new(1.0, 1.0, 1.0, color.a)
 }
 
 pub fn render_button_flat(interaction: Interaction, text_rect: &TextRect, style: &Style) {
-    let style = render_button_base(interaction, text_rect.rect(), style);
-    text_rect.render_text(style.text_color);
+    let _single_style = render_button_base(interaction, text_rect.rect(), style);
+    draw_text_rect_generic(text_rect, style, draw_text_shadow)
 }
 pub fn render_button_base(interaction: Interaction, rect: Rect, style: &Style) -> SingleStyle {
     let (bg_color, text_color, border_color) = match interaction {

@@ -5,8 +5,9 @@ use crate::scenes::menu::Player;
 use crate::ui::button_trait::ButtonTrait;
 use crate::ui::complex_button::ComplexButton;
 use crate::ui::counter::Counter;
-use crate::{choose_font_size, AnyError, BASE_FONT_SIZE, STYLE};
+use crate::{choose_font_size, new_button, AnyError, BASE_FONT_SIZE, SHADOWS, STYLE};
 use juquad::widgets::anchor::Anchor;
+use juquad::widgets::button::Button;
 use juquad::widgets::text::TextRect;
 use juquad::widgets::Widget;
 use macroquad::color::{Color, BLACK, DARKGRAY, WHITE};
@@ -85,7 +86,11 @@ pub async fn scene(
             println!("{}", Vec2::from(mouse_position()));
         }
         board.maybe_change_size(&mut buttons);
-
+        if buttons.toggle_shadows.interact().is_clicked() {
+            unsafe {
+                SHADOWS = !SHADOWS;
+            }
+        }
         clear_background(GRAY);
 
         let board_rect = Rect::new(
@@ -156,6 +161,7 @@ pub struct Buttons {
     pub undo: ComplexButton,
     pub rows: Counter,
     pub columns: Counter,
+    pub toggle_shadows: Button,
 }
 
 impl Buttons {
@@ -194,11 +200,15 @@ impl Buttons {
         let columns = Counter::new(column_count, anchor_columns, counter_inner_pad, font_size);
         let anchor_rows = Anchor::top_right(columns.rect().x - left_pad * 0.5, columns.rect().y);
         let rows = Counter::new(row_count, anchor_rows, counter_inner_pad, font_size);
+
+        let anchor = Anchor::top_left(0.0, 0.0);
+        let toggle_shadows = new_button("toggle shadows", anchor, font_size);
         Self {
             restart,
             undo,
             rows,
             columns,
+            toggle_shadows,
         }
     }
 }
@@ -435,6 +445,7 @@ fn draw_instructions(buttons: &Buttons) {
     // draw_rect_lines(text_border(&buttons.restart.text_rect), 2.0, macroquad::prelude::RED);
     buttons.undo.render(&STYLE);
     // draw_rect_lines(text_border(&buttons.undo.text_rect), 2.0, macroquad::prelude::RED);
+    buttons.toggle_shadows.render(&STYLE);
 }
 
 #[allow(unused)]
