@@ -1,19 +1,10 @@
 use crate::{choose_font_size, setup_font, AnyError};
 use juquad::texture_loader::TextureLoader;
 use juquad::widgets::anchor::Anchor;
-use juquad::widgets::button::{InteractionStyle, Style};
 use juquad::widgets::text::TextRect;
 use macroquad::color::WHITE;
 use macroquad::prelude::{next_frame, screen_height, screen_width, FilterMode, Texture2D};
 
-const LOADING_STYLE: Style = Style {
-    text_color: InteractionStyle {
-        at_rest: WHITE,
-        hovered: WHITE,
-        pressed: WHITE,
-    },
-    ..Style::new()
-};
 pub struct Textures {
     pub restart: Texture2D,
     pub undo: Texture2D,
@@ -47,7 +38,7 @@ pub async fn scene() -> Result<Textures, AnyError> {
             height = new_height;
             text = reset(width, height);
         }
-        text.render(&LOADING_STYLE);
+        text.render_text(WHITE);
         next_frame().await;
     }
 }

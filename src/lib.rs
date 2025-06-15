@@ -1,9 +1,9 @@
 use juquad::draw::{draw_rect, draw_rect_lines};
 use juquad::input::input_macroquad::InputMacroquad;
 use juquad::widgets::anchor::Anchor;
-use juquad::widgets::button::{Button, Interaction, InteractionStyle, Style};
+use juquad::widgets::button::{Button};
 use juquad::widgets::text::{draw_text_rect_generic, TextRect};
-use juquad::widgets::Widget;
+use juquad::widgets::{Interaction, StateStyle, Style, Widget};
 use macroquad::color::{BLACK, DARKGRAY, LIGHTGRAY, WHITE};
 use macroquad::prelude::{load_ttf_font_from_bytes, measure_text, Color, Font, Rect, TextParams};
 
@@ -28,27 +28,22 @@ pub const BASE_FONT_SIZE: f32 = 16.0; // prefer using choose_font_size()
 pub static mut FONT: Option<Font> = None;
 
 pub const STYLE: Style = Style {
-    bg_color: InteractionStyle {
-        at_rest: LIGHTGRAY,
-        hovered: WHITE,
-        pressed: DARKGRAY,
+    at_rest: StateStyle {
+        text_color: DARKGRAY,
+        bg_color: LIGHTGRAY,
+        border_color: DARKGRAY,
     },
-    text_color: InteractionStyle {
-        at_rest: DARKGRAY,
-        hovered: BLACK,
-        pressed: LIGHTGRAY,
+    hovered: StateStyle {
+        text_color: BLACK,
+        bg_color: WHITE,
+        border_color: BLACK,
     },
-    border_color: InteractionStyle {
-        at_rest: DARKGRAY,
-        hovered: BLACK,
-        pressed: LIGHTGRAY,
+    pressed: StateStyle {
+        text_color: LIGHTGRAY,
+        bg_color: DARKGRAY,
+        border_color: LIGHTGRAY,
     },
 };
-pub struct SingleStyle {
-    bg_color: Color,
-    text_color: Color,
-    border_color: Color,
-}
 
 pub fn choose_font_size(width: f32, height: f32) -> f32 {
     let min_side = height.min(width * 16.0 / 9.0);
@@ -82,7 +77,7 @@ pub fn new_button_alt_font(text: &str, position: Anchor, font_size: f32) -> Butt
 }
 
 pub fn new_button_from_text_rect(text_rect: TextRect) -> Button {
-    Button::new_from_text_rect_generic(text_rect, render_button_flat, Box::new(InputMacroquad))
+    Button::new_from_text_rect_generic(text_rect, Box::new(InputMacroquad))
 }
 pub fn new_text_alt_font(text: &str, position: Anchor, font_size: f32) -> TextRect {
     TextRect::new_generic(
@@ -91,20 +86,22 @@ pub fn new_text_alt_font(text: &str, position: Anchor, font_size: f32) -> TextRe
         font_size,
         unsafe { FONT },
         measure_text,
-        draw_text_shadow,
     )
 }
 static mut SHADOWS: bool = false;
 
-pub fn draw_text_shadow(
+pub fn draw_text_shadow(text_rect: &TextRect, style: &StateStyle) {
+    draw_text_rect_generic(text_rect, style, draw_text_shadow_deconstructed);
+}
+pub fn draw_text_shadow_deconstructed(
     text: &str,
     x: f32,
     y: f32,
     font_size: f32,
-    style: &Style,
+    style: &StateStyle,
     font: Option<Font>,
 ) {
-    let color = style.text_color.at_rest;
+    let color = style.text_color;
     let color_shadow = darken(color);
     if let Some(font) = font {
         let mut params = TextParams {
@@ -144,38 +141,20 @@ pub fn invert(color: Color) -> Color {
     Color::new(1.0, 1.0, 1.0, color.a)
 }
 
-pub fn render_button_flat(interaction: Interaction, text_rect: &TextRect, style: &Style) {
-    let _single_style = render_button_base(interaction, text_rect.rect(), style);
-    draw_text_rect_generic(text_rect, style, draw_text_shadow)
+pub fn render_button_flat(button: &Button, style: &Style) {
+    button.render(style, render_button_flat_deconstructed);
 }
-pub fn render_button_base(interaction: Interaction, rect: Rect, style: &Style) -> SingleStyle {
-    let (bg_color, text_color, border_color) = match interaction {
-        Interaction::Clicked | Interaction::Pressing => (
-            style.bg_color.pressed,
-            style.text_color.pressed,
-            style.border_color.pressed,
-        ),
-        Interaction::Hovered => (
-            style.bg_color.hovered,
-            style.text_color.hovered,
-            style.border_color.hovered,
-        ),
-        Interaction::None => (
-            style.bg_color.at_rest,
-            style.text_color.at_rest,
-            style.border_color.at_rest,
-        ),
-    };
-    let single_style = SingleStyle {
-        bg_color,
-        text_color,
-        border_color,
-    };
-    draw_rect(rect, single_style.bg_color);
+pub fn render_button_flat_deconstructed(interaction: Interaction, text_rect: &TextRect, style: &Style) {
+    let state_style = render_button_base(interaction, text_rect.rect(), style);
+    draw_text_rect_generic(text_rect, state_style, draw_text_shadow_deconstructed)
+}
+pub fn render_button_base(interaction: Interaction, rect: Rect, style: &Style) -> &StateStyle {
+    let state_style = style.choose(interaction);
+    draw_rect(rect, state_style.bg_color);
     // let smaller = Rect::new(rect.x+1.0, rect.y, rect.w - 2.0, rect.h);
     // draw_rect(smaller, single_style.bg_color);
     // draw_line(rect.x+1.0, rect.y + 1.0, rect.x+1.0, rect.bottom() - 1.0,  1.0, single_style.bg_color);
     // draw_line(rect.right(), rect.y + 1.0, rect.right(), rect.bottom() - 1.0,  1.0, single_style.bg_color);
-    draw_rect_lines(rect, 2.0, single_style.border_color);
-    single_style
+    draw_rect_lines(rect, 2.0, state_style.border_color);
+    state_style
 }

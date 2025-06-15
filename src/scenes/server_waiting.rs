@@ -1,5 +1,5 @@
 use crate::remote_player::Command;
-use crate::{choose_font_size, new_button, STYLE};
+use crate::{choose_font_size, new_button, render_button_flat, STYLE};
 use juquad::widgets::anchor::Anchor;
 use juquad::widgets::button::Button;
 use juquad::widgets::text::TextRect;
@@ -34,7 +34,7 @@ pub async fn scene(from_client: &Receiver<Command>, _to_client: &Sender<Command>
         text.render_text(text_color);
         let now_seconds = now();
         animation[now_seconds.trunc() as usize % 3].render_text(text_color);
-        exit.render(&STYLE);
+        render_button_flat(&exit, &STYLE);
 
         next_frame().await
     }

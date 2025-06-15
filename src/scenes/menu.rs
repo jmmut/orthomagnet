@@ -57,20 +57,19 @@ pub struct Buttons {
 }
 impl Buttons {
     pub fn render(&self) {
-        self.local.render(&STYLE);
-        self.connect.render(&STYLE);
-        self.serve.render(&STYLE);
-        self.exit.render(&STYLE);
+        render_button_flat(&self.local, &STYLE); 
+        render_button_flat(&self.connect, &STYLE);
+        render_button_flat(&self.serve, &STYLE);
+        render_button_flat(&self.exit, &STYLE);
     }
 }
 
 fn create_button_group(font_size: f32, width: f32, height: f32) -> Buttons {
-    let mut button_group = ButtonGroup::new_with_font(
+    let button_group = ButtonGroup::new_with_font(
         font_size,
         unsafe { FONT },
         Anchor::top_center(width * 0.5, height * 0.25),
     );
-    button_group.render = render_button_flat;
     let [local, connect, serve, exit] =
         button_group.create(["Local game", "Connect to server", "Serve game", "Exit"]);
     Buttons {

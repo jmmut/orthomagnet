@@ -1,10 +1,11 @@
-use crate::{draw_text_shadow, new_button_from_text_rect, new_text_alt_font, FONT};
+use crate::{draw_text_shadow, new_button_from_text_rect, new_text_alt_font, render_button_flat, FONT, STYLE};
 use juquad::draw::draw_rect;
 use juquad::widgets::anchor::{Anchor, Horizontal};
-use juquad::widgets::button::{Button, Style};
+use juquad::widgets::button::Button;
 use juquad::widgets::button_group::LabelGroup;
-use juquad::widgets::text::{draw_text_rect_generic, TextRect};
-use macroquad::prelude::{Rect, DARKGRAY, LIGHTGRAY};
+use juquad::widgets::text::TextRect;
+use juquad::widgets::Style;
+use macroquad::prelude::Rect;
 
 pub struct Counter {
     pub vertical_pad: f32,
@@ -60,11 +61,11 @@ impl Counter {
         )
     }
     pub fn render(&self, style: &Style) {
-        draw_rect(self.rect(), DARKGRAY);
-        self.increase.render(style);
+        draw_rect(self.rect(), STYLE.pressed.bg_color);
+        render_button_flat(&self.increase, style);
         let mut num_style = Style::new();
-        num_style.text_color.at_rest = LIGHTGRAY;
-        draw_text_rect_generic(&self.counter, &num_style, draw_text_shadow);
-        self.decrease.render(style);
+        num_style.at_rest.text_color = STYLE.pressed.text_color;
+        draw_text_shadow(&self.counter, &num_style.at_rest);
+        render_button_flat(&self.decrease, style);
     }
 }

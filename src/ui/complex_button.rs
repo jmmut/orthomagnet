@@ -3,9 +3,8 @@ use crate::{new_text_alt_font, render_button_base};
 use juquad::input::input_macroquad::InputMacroquad;
 use juquad::input::input_trait::InputTrait;
 use juquad::widgets::anchor::{Anchor, Vertical};
-use juquad::widgets::button::{Interaction, Style};
 use juquad::widgets::text::TextRect;
-use juquad::widgets::Widget;
+use juquad::widgets::{Interaction, Style, Widget};
 use macroquad::math::{vec2, Vec2};
 use macroquad::prelude::{draw_texture_ex, DrawTextureParams, Rect, Texture2D};
 
